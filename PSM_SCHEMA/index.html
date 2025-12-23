@@ -1288,7 +1288,7 @@
 <li>Note: Minor field order difference in <code>protein_accessions</code> position (does not affect functionality)</li>
 </ul>
 <h3 id="2-documentation">2. Documentation<a class="headerlink" href="#2-documentation" title="Anchor link to this section">&para;</a></h3>
-<p>The PSM section in <code>docs/format-specification.md</code> (L700-851) is complete with:</p>
+<p>The PSM section in <code>docs/format-specification.md</code> (L696-851) is complete with:</p>
 <ul>
 <li>Complete field description tables</li>
 <li>Tool mapping (MaxQuant, DIA-NN, FragPipe, mzTab)</li>
@@ -1324,11 +1324,11 @@
 <ul>
 <li><strong>Field Mapping</strong>: All 22 fields correctly mapped via <code>MAXQUANT_PSM_MAP</code></li>
 <li><strong>Modifications</strong>: Correctly parsed with name, accession, positions structure</li>
-<li><strong>Additional Scores</strong>: Collected andromeda_score, andromeda_delta_score, parent_ion_fraction</li>
+<li><strong>Additional Scores</strong>: Correctly collected andromeda_score, andromeda_delta_score, parent_ion_fraction</li>
 <li><strong>Spectral Arrays</strong>: mz_array, intensity_array, charge_array, ion_type_array all correctly processed</li>
 </ul>
 <h2 id="psm-schema-fields-22-total">PSM Schema Fields (22 total)<a class="headerlink" href="#psm-schema-fields-22-total" title="Anchor link to this section">&para;</a></h2>
-<h3 id="core-identification-fields-15">Core Identification Fields (15)<a class="headerlink" href="#core-identification-fields-15" title="Anchor link to this section">&para;</a></h3>
+<h3 id="core-identification-fields-14">Core Identification Fields (14)<a class="headerlink" href="#core-identification-fields-14" title="Anchor link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1408,14 +1408,9 @@
 <td>float32</td>
 <td>MS2 retention time (seconds)</td>
 </tr>
-<tr>
-<td>ion_mobility</td>
-<td>float32</td>
-<td>Ion mobility value</td>
-</tr>
 </tbody>
 </table>
-<h3 id="psm-unique-fields-7">PSM Unique Fields (7)<a class="headerlink" href="#psm-unique-fields-7" title="Anchor link to this section">&para;</a></h3>
+<h3 id="protein-mapping-fields-1">Protein Mapping Fields (1)<a class="headerlink" href="#protein-mapping-fields-1" title="Anchor link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1429,6 +1424,23 @@
 <td>protein_accessions</td>
 <td>list[string]</td>
 <td>Protein accessions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="spectral-data-fields-7">Spectral Data Fields (7)<a class="headerlink" href="#spectral-data-fields-7" title="Anchor link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ion_mobility</td>
+<td>float32</td>
+<td>Ion mobility value</td>
 </tr>
 <tr>
 <td>number_peaks</td>
