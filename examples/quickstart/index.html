@@ -748,10 +748,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-3-absolute-expression-analysis" class="md-nav__link">
+  <a href="#example-3-protein-quantification" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example 3: Absolute Expression Analysis
+        Example 3: Protein Quantification
       
     </span>
   </a>
@@ -2431,18 +2431,24 @@
 <li><code>output/feature-{uuid}.feature.parquet</code></li>
 <li><code>output/pg-{uuid}.pg.parquet</code></li>
 </ul>
-<h2 id="example-3-absolute-expression-analysis">Example 3: Absolute Expression Analysis<a class="headerlink" href="#example-3-absolute-expression-analysis" title="Anchor link to this section">&para;</a></h2>
-<p>Calculate absolute protein expression from iBAQ data.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>ae<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--ibaq-file<span class="w"> </span>tests/examples/AE/PXD016999.1-ibaq.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--sdrf-file<span class="w"> </span>tests/examples/AE/PXD016999-first-instrument.sdrf.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--project-file<span class="w"> </span>tests/examples/AE/project.json<span class="w"> </span><span class="se">\ </span><span class="w"> </span><span class="c1"># v1.0; will be dataset.parquet in v2.0</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span>--output-prefix<span class="w"> </span>ae_analysis
+<h2 id="example-3-protein-quantification">Example 3: Protein Quantification<a class="headerlink" href="#example-3-protein-quantification" title="Anchor link to this section">&para;</a></h2>
+<p>Compute protein-level quantification from QPX feature data using mokume.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># DirectLFQ quantification (default)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--feature-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--method<span class="w"> </span>directlfq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>-o<span class="w"> </span>proteins_directlfq.parquet
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># iBAQ quantification (requires FASTA)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span>--feature-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span>--method<span class="w"> </span>ibaq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span>--fasta<span class="w"> </span>proteome.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span>-o<span class="w"> </span>proteins_ibaq.tsv
 </span></code></pre></div>
 <p><strong>Expected Output</strong>:</p>
 <ul>
-<li><code>output/ae_analysis-{uuid}.absolute.parquet</code></li>
+<li><code>proteins_directlfq.parquet</code> or <code>proteins_ibaq.tsv</code></li>
 </ul>
 <hr />
 <p><a href="../">← Back to Examples Overview</a> | <a href="../workflows/">View Workflows →</a></p>

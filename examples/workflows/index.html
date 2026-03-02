@@ -765,10 +765,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#differential-expression-analysis-workflow" class="md-nav__link">
+  <a href="#protein-quantification-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Differential Expression Analysis Workflow
+        Protein Quantification Workflow
       
     </span>
   </a>
@@ -2401,12 +2401,12 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span>--output-folder<span class="w"> </span><span class="nv">$OUTPUT_DIR</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span>--verbose
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="c1"># Step 2: Calculate absolute expression</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Calculating absolute expression...&quot;</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>ae<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span>--ibaq-file<span class="w"> </span><span class="nv">$RAW_DIR</span>/ibaq.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span>--sdrf-file<span class="w"> </span><span class="nv">$RAW_DIR</span>/experiment.sdrf.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span>--output-folder<span class="w"> </span><span class="nv">$OUTPUT_DIR</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="c1"># Step 2: Protein quantification (DirectLFQ)</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Running protein quantification...&quot;</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span>--feature-path<span class="w"> </span><span class="nv">$OUTPUT_DIR</span>/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span>--method<span class="w"> </span>directlfq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span>-o<span class="w"> </span><span class="nv">$OUTPUT_DIR</span>/proteins_directlfq.parquet
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
 </span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="c1"># Step 3: Validate the QPX output</span>
 </span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Validating dataset...&quot;</span>
@@ -2420,20 +2420,25 @@
 </span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Results:&quot;</span>
 </span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;  - Converted data: </span><span class="nv">$OUTPUT_DIR</span><span class="s2">/&quot;</span>
 </span></code></pre></div>
-<h2 id="differential-expression-analysis-workflow">Differential Expression Analysis Workflow<a class="headerlink" href="#differential-expression-analysis-workflow" title="Anchor link to this section">&para;</a></h2>
-<p>Analyze differential expression from MSstats output.</p>
+<h2 id="protein-quantification-workflow">Protein Quantification Workflow<a class="headerlink" href="#protein-quantification-workflow" title="Anchor link to this section">&para;</a></h2>
+<p>Compute protein-level quantification from QPX feature data.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="ch">#!/bin/bash</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Convert differential expression data</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>differential<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span>--msstats-file<span class="w"> </span>tests/examples/DE/PXD033169.sdrf_openms_design_msstats_in_comparisons.csv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span>--sdrf-file<span class="w"> </span>tests/examples/DE/PXD033169.sdrf.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span>--project-file<span class="w"> </span>tests/examples/DE/project.json<span class="w"> </span><span class="se">\ </span><span class="w"> </span><span class="c1"># v1.0; dataset.parquet in v2.0</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span>--fdr-threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span>--verbose
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Differential expression analysis complete!&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># iBAQ quantification (requires FASTA database)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span>--feature-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span>--method<span class="w"> </span>ibaq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span>--fasta<span class="w"> </span>proteome.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span>-o<span class="w"> </span>./output/proteins_ibaq.tsv
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># MaxLFQ quantification with 8 threads</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span>--feature-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span>--method<span class="w"> </span>maxlfq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span>--threads<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span>-o<span class="w"> </span>./output/proteins_maxlfq.parquet
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Protein quantification complete!&quot;</span>
 </span></code></pre></div>
 <hr />
 <p><a href="../">← Back to Examples Overview</a> | <a href="../integration/">View Integration Examples →</a></p>
