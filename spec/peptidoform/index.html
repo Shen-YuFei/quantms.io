@@ -2513,7 +2513,7 @@
 </tr>
 </tbody>
 </table>
-<p>In all three views, the <code>peptidoform</code> string serves as a key component of the record identity alongside <code>precursor_charge</code> and <code>run_file_name</code>.</p>
+<p>In all three views, the <code>peptidoform</code> string serves as a key component of the record identity alongside <code>charge</code> and <code>run_file_name</code>.</p>
 <h2 id="relationship-to-the-modifications-field">Relationship to the modifications field<a class="headerlink" href="#relationship-to-the-modifications-field" title="Anchor link to this section">&para;</a></h2>
 <p>The <code>peptidoform</code> string encodes modifications inline, which is compact and human-readable. However, some use cases require structured access to modification details -- for example, querying all phosphorylation sites with their localization probabilities.</p>
 <p>For this purpose, QPX provides a separate <code>modifications</code> field that represents the same information as a structured array of records. See the <a href="../modifications/">Modifications</a> page for the full struct definition and examples.</p>
