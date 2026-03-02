@@ -2508,9 +2508,12 @@
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;ontology_name&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># proper ontology term (e.g. &quot;Comet:xcorr&quot;)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;ontology_accession&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># CV accession (e.g. &quot;MS:1002252&quot;)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;ontology_source&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># ontology prefix (e.g. &quot;MS&quot;, &quot;UBERON&quot;, &quot;UNIMOD&quot;)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;view&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>                <span class="c1"># which view (e.g. &quot;psm&quot;, &quot;feature&quot;, &quot;sample&quot;)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># human-readable description</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">])</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;ontology_version&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># version of the ontology (e.g. &quot;4.1.235&quot;)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;view&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>                <span class="c1"># which view (e.g. &quot;psm&quot;, &quot;feature&quot;, &quot;sample&quot;)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># human-readable description</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;source_column_name&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># original column name in tool output</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;source_tool&quot;</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># tool that produced this field</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="example-rows">Example rows<a class="headerlink" href="#example-rows" title="Anchor link to this section">&para;</a></h3>
 <table>
@@ -2872,7 +2875,7 @@
 <td>Structured modification list with UNIMOD accessions</td>
 </tr>
 <tr>
-<td><code>precursor_charge</code></td>
+<td><code>charge</code></td>
 <td>charge state</td>
 <td><code>MS:1000041</code></td>
 <td>Charge state of the precursor ion</td>
@@ -2966,6 +2969,18 @@
 <td>---</td>
 <td>---</td>
 <td>Array of fragment ion mobility values</td>
+</tr>
+<tr>
+<td><code>mass_error_ppm</code></td>
+<td>---</td>
+<td>---</td>
+<td>Mass error in ppm</td>
+</tr>
+<tr>
+<td><code>missed_cleavages</code></td>
+<td>missed cleavages</td>
+<td><code>MS:1003044</code></td>
+<td>Number of missed enzymatic cleavages</td>
 </tr>
 <tr>
 <td><code>additional_scores</code></td>
@@ -3090,7 +3105,7 @@
 <td>Run file containing the best PSM for this feature</td>
 </tr>
 <tr>
-<td><code>id_scan</code></td>
+<td><code>scan</code></td>
 <td>scan number</td>
 <td><code>MS:1003057</code></td>
 <td>Scan identifier of the best PSM</td>
@@ -3130,6 +3145,42 @@
 <td>protein-level global FDR</td>
 <td><code>MS:1001214</code></td>
 <td>Global q-value of the protein group</td>
+</tr>
+<tr>
+<td><code>unique</code></td>
+<td>---</td>
+<td>---</td>
+<td>Unique peptide indicator</td>
+</tr>
+<tr>
+<td><code>gg_accessions</code></td>
+<td>---</td>
+<td>---</td>
+<td>Gene group identifiers</td>
+</tr>
+<tr>
+<td><code>gg_names</code></td>
+<td>---</td>
+<td>---</td>
+<td>Gene group names</td>
+</tr>
+<tr>
+<td><code>mass_error_ppm</code></td>
+<td>---</td>
+<td>---</td>
+<td>Mass error in ppm</td>
+</tr>
+<tr>
+<td><code>missed_cleavages</code></td>
+<td>missed cleavages</td>
+<td><code>MS:1003044</code></td>
+<td>Number of missed enzymatic cleavages</td>
+</tr>
+<tr>
+<td><code>posterior_error_probability</code></td>
+<td>posterior error probability</td>
+<td><code>MS:1001493</code></td>
+<td>PEP for the peptide match</td>
 </tr>
 <tr>
 <td><code>additional_scores</code></td>

@@ -2532,6 +2532,12 @@
 <td>No</td>
 </tr>
 <tr>
+<td><code>gg_qvalue</code></td>
+<td>Gene group q-value (e.g., DIA-NN GG.Q.Value)</td>
+<td><code>float64</code>, null</td>
+<td>No</td>
+</tr>
+<tr>
 <td><code>anchor_protein</code></td>
 <td>Representative protein of the group (leading protein)</td>
 <td><code>string</code></td>
@@ -2625,8 +2631,8 @@
 </tr>
 <tr>
 <td><code>contaminant</code></td>
-<td>Contaminant indicator: 1 if contaminant, 0 otherwise</td>
-<td><code>int32</code></td>
+<td>Contaminant flag</td>
+<td><code>bool</code>, null</td>
 <td>No</td>
 </tr>
 <tr>

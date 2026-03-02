@@ -2044,32 +2044,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#ae" class="md-nav__link">
+  <a href="#quantify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ae
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#de" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        de
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gene-map" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        gene-map
+        quantify
       
     </span>
   </a>
@@ -2394,10 +2372,6 @@
 
 
 <h1 id="transform-commands">Transform Commands<a class="headerlink" href="#transform-commands" title="Anchor link to this section">&para;</a></h1>
-<div class="admonition note">
-<p class="admonition-title">v2.0 Migration</p>
-<p>The <code>--project-file</code> parameter in the examples below refers to <code>project.json</code> (v1.0 format). In QPX v2.0, this will be replaced by <code>dataset.parquet</code>. See <a href="../../spec/dataset/">Dataset Metadata</a> for the new format.</p>
-</div>
 <p>Transform and process data within the QPX ecosystem.</p>
 <p>```python exec="1" session="doc_utils" result="ansi"
 import click
@@ -2484,220 +2458,44 @@ return table
     return ''
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>## Overview
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>The `transform` command group provides tools for processing and transforming QPX data into various downstream formats. These commands enable absolute and differential expression analysis, metadata mapping, and data format conversions.
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>The `transform` command group provides tools for processing and transforming QPX data into various downstream formats. These commands enable gene annotation and protein-level quantification from feature data.
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>## Available Commands
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>- [ibaq](#ibaq) - Compute iBAQ from features
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>- [ae](#ae) - Create absolute expression data
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>- [de](#de) - Create differential expression data
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>- [gene-map](#gene-map) - Map genes from FASTA
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>- [gene-map](#gene-map) - Map genes from FASTA
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>- [quantify](#quantify) - Protein quantification via mokume (DirectLFQ, MaxLFQ, iBAQ, TopN, etc.)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>---
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>---
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>## gene-map
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>## ibaq
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>Map gene information from FASTA to parquet format.
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>Compute iBAQ from feature data.
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>### Description {#gene-map-description}
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>### Description {#ibaq-description}
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>from qpx.cli.transform import transform_ibaq_cmd
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>print(generate_description(transform_ibaq_cmd))
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>from qpx.cli.transform import transform_gene_map_cmd
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>print(generate_description(transform_gene_map_cmd))
 </span></code></pre></div></p>
-<h3 id="ibaq-parameters">Parameters<a class="headerlink" href="#ibaq-parameters" title="Anchor link to this section">&para;</a></h3>
+<h3 id="gene-map-parameters">Parameters<a class="headerlink" href="#gene-map-parameters" title="Anchor link to this section">&para;</a></h3>
 <p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_ibaq_cmd
-print(generate_params_table(transform_ibaq_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>### Usage Examples {#ibaq-examples}
+from qpx.cli.transform import transform_gene_map_cmd
+print(generate_params_table(transform_gene_map_cmd))
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>### Usage Examples {#gene-map-examples}
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>#### Basic Example {#ibaq-example-basic}
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>#### Basic Example {#gene-map-example-basic}
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>from qpx.cli.transform import transform_ibaq_cmd
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>print(generate_example(transform_ibaq_cmd, &#39;Compute iBAQ from feature data:&#39;))
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>from qpx.cli.transform import transform_gene_map_cmd
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>print(generate_example(transform_gene_map_cmd, &#39;Map gene information to parquet file:&#39;))
 </span></code></pre></div></p>
-<h4 id="ibaq-example-prefix">With Custom Prefix<a class="headerlink" href="#ibaq-example-prefix" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>ibaq<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--feature-file<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--sdrf-file<span class="w"> </span>./metadata.sdrf.tsv<span class="w"> </span><span class="se">\</span>
+<h4 id="gene-map-example-species">With Species Parameter<a class="headerlink" href="#gene-map-example-species" title="Anchor link to this section">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>gene-map<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--parquet-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--fasta<span class="w"> </span>tests/examples/fasta/Homo-sapiens.fasta<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--output-prefix<span class="w"> </span>ibaq_quantification
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--species<span class="w"> </span>human
 </span></code></pre></div>
-<h3 id="ibaq-output">Output Files<a class="headerlink" href="#ibaq-output" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li><strong>Output</strong>: <code>{output-prefix}-{uuid}.ibaq.parquet</code></li>
-<li><strong>Format</strong>: Parquet file containing iBAQ quantification values</li>
-<li><strong>Content</strong>: Protein-level iBAQ values per sample</li>
-</ul>
-<h3 id="ibaq-best-practices">Best Practices<a class="headerlink" href="#ibaq-best-practices" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li>Ensure feature file contains all necessary quantification data</li>
-<li>Verify SDRF metadata matches sample identifiers in feature file</li>
-<li>Use iBAQ output for absolute protein quantification analysis</li>
-</ul>
-<hr />
-<h2 id="ae">ae<a class="headerlink" href="#ae" title="Anchor link to this section">&para;</a></h2>
-<p>Create absolute expression data from iBAQ.</p>
-<h3 id="ae-description">Description<a class="headerlink" href="#ae-description" title="Anchor link to this section">&para;</a></h3>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_ae_cmd
-print(generate_description(transform_ae_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>**Format Specification**: For details about the AE format structure and fields, see the [Absolute Expression Format Specification](../spec/absolute.md).
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>### Parameters {#ae-parameters}
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>from qpx.cli.transform import transform_ae_cmd
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>print(generate_params_table(transform_ae_cmd))
-</span></code></pre></div></p>
-<h3 id="ae-examples">Usage Examples<a class="headerlink" href="#ae-examples" title="Anchor link to this section">&para;</a></h3>
-<h4 id="ae-example-basic">Basic Example<a class="headerlink" href="#ae-example-basic" title="Anchor link to this section">&para;</a></h4>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_ae_cmd
-print(generate_example(transform_ae_cmd, 'Convert iBAQ data with default settings:'))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>#### With Project Metadata {#ae-example-metadata}
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>```bash
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>qpxc transform ae \
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    --ibaq-file tests/examples/AE/PXD016999.1-ibaq.tsv \
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    --sdrf-file tests/examples/AE/PXD016999-first-instrument.sdrf.tsv \
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    --project-file tests/examples/AE/project.json \
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    --output-folder ./output \
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    --output-prefix ae_with_metadata \
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    --delete-existing
-</span></code></pre></div></p>
-<h4 id="ae-example-filter">Filter Specific Proteins<a class="headerlink" href="#ae-example-filter" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>ae<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--ibaq-file<span class="w"> </span>tests/examples/AE/PXD016999.1-ibaq.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--sdrf-file<span class="w"> </span>tests/examples/AE/PXD016999-first-instrument.sdrf.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>--protein-file<span class="w"> </span>tests/examples/fasta/Homo-sapiens.fasta<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output
-</span></code></pre></div>
-<h3 id="ae-input-formats">Input File Formats<a class="headerlink" href="#ae-input-formats" title="Anchor link to this section">&para;</a></h3>
-<p><strong>iBAQ File</strong>: Tab-separated file with protein accessions and iBAQ intensities</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ProteinID    Sample1    Sample2    Sample3
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>P12345       1000000    950000     1050000
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Q67890       500000     480000     520000
-</span></code></pre></div>
-<p><strong>SDRF File</strong>: Standard PRIDE SDRF format with sample metadata</p>
-<h3 id="ae-output">Output Files<a class="headerlink" href="#ae-output" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li><strong>Output</strong>: <code>{output-prefix}-{uuid}.absolute.parquet</code></li>
-<li><strong>Format</strong>: Parquet file containing absolute expression quantification</li>
-<li><strong>Schema</strong>: Conforms to <a href="../../spec/absolute/">QPX absolute expression specification</a></li>
-</ul>
-<h3 id="ae-issues">Common Issues<a class="headerlink" href="#ae-issues" title="Anchor link to this section">&para;</a></h3>
-<p><strong>Issue</strong>: Mismatched sample names between iBAQ and SDRF</p>
-<ul>
-<li><strong>Solution</strong>: Ensure column names in iBAQ file match sample identifiers in SDRF</li>
-</ul>
-<p><strong>Issue</strong>: Missing protein accessions</p>
-<ul>
-<li><strong>Solution</strong>: Provide <code>--protein-file</code> to filter and validate protein IDs</li>
-</ul>
-<h3 id="ae-best-practices">Best Practices<a class="headerlink" href="#ae-best-practices" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li>Always provide project metadata file when available for better data provenance</li>
-<li>Use <code>--delete-existing</code> flag carefully to avoid accidental data loss</li>
-<li>Validate SDRF file format before processing</li>
-<li>Check sample name consistency across input files</li>
-</ul>
-<hr />
-<h2 id="de">de<a class="headerlink" href="#de" title="Anchor link to this section">&para;</a></h2>
-<p>Create differential expression data from MSstats.</p>
-<h3 id="de-description">Description<a class="headerlink" href="#de-description" title="Anchor link to this section">&para;</a></h3>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_de_cmd
-print(generate_description(transform_de_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>### Parameters {#de-parameters}
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>from qpx.cli.transform import transform_de_cmd
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>print(generate_params_table(transform_de_cmd))
-</span></code></pre></div></p>
-<h3 id="de-examples">Usage Examples<a class="headerlink" href="#de-examples" title="Anchor link to this section">&para;</a></h3>
-<h4 id="de-example-basic">Basic Example<a class="headerlink" href="#de-example-basic" title="Anchor link to this section">&para;</a></h4>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_de_cmd
-print(generate_example(transform_de_cmd, 'Convert MSstats differential expression data:'))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>#### With Custom FDR Threshold {#de-example-fdr}
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>```bash
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>qpxc transform de \
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    --msstats-file tests/examples/DE/PXD033169.sdrf_openms_design_msstats_in_comparisons.csv \
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    --sdrf-file tests/examples/DE/PXD033169.sdrf.tsv \
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    --fdr-threshold 0.01 \
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    --output-folder ./output \
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    --output-prefix de_stringent \
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    --verbose
-</span></code></pre></div></p>
-<h4 id="de-example-metadata">With Project Metadata<a class="headerlink" href="#de-example-metadata" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>de<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--msstats-file<span class="w"> </span>tests/examples/DE/PXD033169.sdrf_openms_design_msstats_in_comparisons.csv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--sdrf-file<span class="w"> </span>tests/examples/DE/PXD033169.sdrf.tsv<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--project-file<span class="w"> </span>tests/examples/DE/project.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span>--fdr-threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span>--delete-existing
-</span></code></pre></div>
-<h3 id="de-input-format">Input File Format<a class="headerlink" href="#de-input-format" title="Anchor link to this section">&para;</a></h3>
-<p><strong>MSstats File</strong>: CSV file with comparison results</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Protein,Label,log2FC,SE,Tvalue,DF,pvalue,adj.pvalue
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>P12345,Condition2-Condition1,2.5,0.3,8.33,10,0.0001,0.001
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>Q67890,Condition2-Condition1,-1.8,0.4,-4.5,10,0.002,0.01
-</span></code></pre></div>
-<h3 id="de-output">Output Files<a class="headerlink" href="#de-output" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li><strong>Output</strong>: <code>{output-prefix}-{uuid}.differential.parquet</code></li>
-<li><strong>Format</strong>: Parquet file containing differential expression results</li>
-<li><strong>Schema</strong>: Conforms to QPX differential expression specification</li>
-</ul>
-<h3 id="de-issues">Common Issues<a class="headerlink" href="#de-issues" title="Anchor link to this section">&para;</a></h3>
-<p><strong>Issue</strong>: No significant results after FDR filtering</p>
-<ul>
-<li><strong>Solution</strong>: Increase <code>--fdr-threshold</code> or check input data quality</li>
-</ul>
-<p><strong>Issue</strong>: Memory errors with large comparison files</p>
-<ul>
-<li><strong>Solution</strong>: Process comparisons in batches or increase available memory</li>
-</ul>
-<h3 id="de-best-practices">Best Practices<a class="headerlink" href="#de-best-practices" title="Anchor link to this section">&para;</a></h3>
-<ul>
-<li>Use FDR threshold of 0.05 or lower for publication-quality results</li>
-<li>Enable verbose mode to monitor filtering statistics</li>
-<li>Validate comparison group names match SDRF metadata</li>
-<li>Include project file for complete data provenance</li>
-</ul>
-<hr />
-<h2 id="gene-map">gene-map<a class="headerlink" href="#gene-map" title="Anchor link to this section">&para;</a></h2>
-<p>Map gene information from FASTA to parquet format.</p>
-<h3 id="gene-map-description">Description<a class="headerlink" href="#gene-map-description" title="Anchor link to this section">&para;</a></h3>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_gene_map_cmd
-print(generate_description(transform_gene_map_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>### Parameters {#gene-map-parameters}
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>from qpx.cli.transform import transform_gene_map_cmd
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>print(generate_params_table(transform_gene_map_cmd))
-</span></code></pre></div></p>
-<h3 id="gene-map-examples">Usage Examples<a class="headerlink" href="#gene-map-examples" title="Anchor link to this section">&para;</a></h3>
-<h4 id="gene-map-example-basic">Basic Example<a class="headerlink" href="#gene-map-example-basic" title="Anchor link to this section">&para;</a></h4>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_gene_map_cmd
-print(generate_example(transform_gene_map_cmd, 'Map gene information to parquet file:'))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>#### With Partitioning {#gene-map-example-partition}
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>```bash
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>qpxc transform gene-map \
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    --parquet-path ./output/feature.parquet \
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    --fasta tests/examples/fasta/Homo-sapiens.fasta \
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    --output-folder ./output \
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    --file-num 20 \
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    --partitions run_file_name \
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    --species human
-</span></code></pre></div></p>
 <h3 id="gene-map-output">Output Files<a class="headerlink" href="#gene-map-output" title="Anchor link to this section">&para;</a></h3>
 <ul>
 <li><strong>Output</strong>: Enhanced parquet file(s) with gene information</li>
@@ -2707,8 +2505,113 @@ print(generate_example(transform_gene_map_cmd, 'Map gene information to parquet 
 <h3 id="gene-map-best-practices">Best Practices<a class="headerlink" href="#gene-map-best-practices" title="Anchor link to this section">&para;</a></h3>
 <ul>
 <li>Use species-specific FASTA files for accurate gene annotation</li>
-<li>Adjust <code>--file-num</code> based on available memory for large files</li>
-<li>Use partitioning for better file organization in large datasets</li>
+<li>Enable verbose mode for debugging</li>
+</ul>
+<hr />
+<h2 id="quantify">quantify<a class="headerlink" href="#quantify" title="Anchor link to this section">&para;</a></h2>
+<p>Compute protein-level quantification from QPX feature data using <a href="https://github.com/bigbio/mokume">mokume</a>.</p>
+<h3 id="quantify-description">Description<a class="headerlink" href="#quantify-description" title="Anchor link to this section">&para;</a></h3>
+<p>```python exec="1" html="1" session="doc_utils"
+from qpx.cli.transform import transform_quantify_cmd
+print(generate_description(transform_quantify_cmd))
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>### Parameters {#quantify-parameters}
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>from qpx.cli.transform import transform_quantify_cmd
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>print(generate_params_table(transform_quantify_cmd))
+</span></code></pre></div></p>
+<h3 id="supported-methods">Supported Methods<a class="headerlink" href="#supported-methods" title="Anchor link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+<th>Extra Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>directlfq</code></td>
+<td>DirectLFQ intensity traces (default)</td>
+<td><code>pip install mokume[directlfq]</code></td>
+</tr>
+<tr>
+<td><code>maxlfq</code></td>
+<td>MaxLFQ delayed normalization</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>topn</code></td>
+<td>Average of N most intense peptides</td>
+<td><code>--topn-n</code> to set N</td>
+</tr>
+<tr>
+<td><code>top3</code></td>
+<td>Average of 3 most intense peptides</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>ibaq</code></td>
+<td>Intensity-Based Absolute Quantification</td>
+<td><code>--fasta</code> required</td>
+</tr>
+<tr>
+<td><code>sum</code></td>
+<td>Sum of all peptide intensities</td>
+<td>--</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quantify-examples">Usage Examples<a class="headerlink" href="#quantify-examples" title="Anchor link to this section">&para;</a></h3>
+<h4 id="quantify-example-directlfq">DirectLFQ (default)<a class="headerlink" href="#quantify-example-directlfq" title="Anchor link to this section">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>--method<span class="w"> </span>directlfq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_directlfq.parquet
+</span></code></pre></div>
+<h4 id="quantify-example-ibaq">iBAQ (requires FASTA)<a class="headerlink" href="#quantify-example-ibaq" title="Anchor link to this section">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--method<span class="w"> </span>ibaq<span class="w"> </span>--fasta<span class="w"> </span>proteome.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_ibaq.tsv
+</span></code></pre></div>
+<h4 id="quantify-example-maxlfq">MaxLFQ with 8 threads<a class="headerlink" href="#quantify-example-maxlfq" title="Anchor link to this section">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--method<span class="w"> </span>maxlfq<span class="w"> </span>--threads<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_maxlfq.parquet
+</span></code></pre></div>
+<h4 id="quantify-example-topn">TopN with normalization<a class="headerlink" href="#quantify-example-topn" title="Anchor link to this section">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span>--method<span class="w"> </span>topn<span class="w"> </span>--topn-n<span class="w"> </span><span class="m">5</span><span class="w"> </span>--normalize<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_top5.parquet
+</span></code></pre></div>
+<h3 id="quantify-output">Output Files<a class="headerlink" href="#quantify-output" title="Anchor link to this section">&para;</a></h3>
+<ul>
+<li><strong>Parquet</strong>: <code>.parquet</code> files with protein-level quantification</li>
+<li><strong>TSV</strong>: <code>.tsv</code> files (tab-separated) — determined by output file extension</li>
+<li><strong>Content</strong>: Protein accessions, sample IDs, and quantified intensities</li>
+</ul>
+<h3 id="quantify-issues">Common Issues<a class="headerlink" href="#quantify-issues" title="Anchor link to this section">&para;</a></h3>
+<p><strong>Issue</strong>: <code>mokume is not installed</code></p>
+<ul>
+<li><strong>Solution</strong>: Install with <code>pip install mokume</code></li>
+</ul>
+<p><strong>Issue</strong>: <code>DirectLFQ is not installed</code></p>
+<ul>
+<li><strong>Solution</strong>: Install with <code>pip install mokume[directlfq]</code></li>
+</ul>
+<p><strong>Issue</strong>: <code>--fasta option is required for the ibaq method</code></p>
+<ul>
+<li><strong>Solution</strong>: Provide a FASTA database file with <code>--fasta</code></li>
+</ul>
+<h3 id="quantify-best-practices">Best Practices<a class="headerlink" href="#quantify-best-practices" title="Anchor link to this section">&para;</a></h3>
+<ul>
+<li>Ensure QPX feature.parquet contains valid <code>anchor_protein</code>, <code>intensities</code>, and <code>run_file_name</code> fields</li>
+<li>Decoy entries (<code>is_decoy=true</code>) and zero-intensity rows are automatically filtered</li>
+<li>Use <code>--normalize</code> for cross-sample normalization</li>
+<li>Use <code>--threads</code> to control parallelism for MaxLFQ</li>
 </ul>
 <hr />
 <h2 id="related-commands">Related Commands<a class="headerlink" href="#related-commands" title="Anchor link to this section">&para;</a></h2>
