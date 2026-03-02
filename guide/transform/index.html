@@ -114,6 +114,10 @@
       
     
     
+      <link rel="stylesheet" href="../../assets/_markdown_exec_pyodide.css">
+    
+      <link rel="stylesheet" href="../../assets/_markdown_exec_ansi.css">
+    
       <link rel="stylesheet" href="../../stylesheets/quantms-theme.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
@@ -2044,6 +2048,39 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gene-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gene-map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quantify" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2373,128 +2410,84 @@
 
 <h1 id="transform-commands">Transform Commands<a class="headerlink" href="#transform-commands" title="Anchor link to this section">&para;</a></h1>
 <p>Transform and process data within the QPX ecosystem.</p>
-<p>```python exec="1" session="doc_utils" result="ansi"
-import click
-import textwrap</p>
-<p>def get_click_type_display(param):
-    param_type = param.type
-    type_str = str(param_type)
-    if 'Path' in type_str:
-        if hasattr(param_type, 'dir_okay') and not param_type.dir_okay:
-            return 'FILE'
-        elif hasattr(param_type, 'file_okay') and not param_type.file_okay:
-            return 'DIRECTORY'
-        else:
-            return 'PATH'
-    elif isinstance(param_type, click.types.FloatParamType):
-        return 'FLOAT'
-    elif isinstance(param_type, click.types.IntParamType):
-        return 'INTEGER'
-    elif param.is_flag:
-        return 'FLAG'
-    else:
-        return 'TEXT'</p>
-<p>def generate_params_table(command):
-    table = '<table>\n<thead>\n<tr>\n'
-    table += '<th>Parameter</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th>\n'
-    table += '</tr>\n</thead>\n<tbody>\n'
-    for param in command.params:
-        if isinstance(param, click.Option) and param.name not in ['help']:
-            param_names = param.opts
-            param_name = param_names[0] if param_names else f"--{param.name}"
-            param_type = get_click_type_display(param)
-            required = 'Yes' if param.required else 'No'</p>
-<div class="language-text highlight"><pre><span></span><code>        # Extract default value from help text if it contains &quot;(default: ...)&quot;
-        description = param.help or &#39;&#39;
-        default_from_help = None
-        if &#39;(default:&#39; in description.lower():
-            import re
-            match = re.search(r&#39;\(default:\s*([^)]+)\)&#39;, description, re.IGNORECASE)
-            if match:
-                default_from_help = match.group(1).strip()
+<p></p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Anchor link to this section">&para;</a></h2>
+<p>The <code>transform</code> command group provides tools for processing and transforming QPX data into various downstream formats. These commands enable gene annotation and protein-level quantification from feature data.</p>
+<h2 id="available-commands">Available Commands<a class="headerlink" href="#available-commands" title="Anchor link to this section">&para;</a></h2>
+<ul>
+<li><a href="#gene-map">gene-map</a> - Map genes from FASTA</li>
+<li><a href="#quantify">quantify</a> - Protein quantification via mokume (DirectLFQ, MaxLFQ, iBAQ, TopN, etc.)</li>
+</ul>
+<hr />
+<h2 id="gene-map">gene-map<a class="headerlink" href="#gene-map" title="Anchor link to this section">&para;</a></h2>
+<p>Map gene information from FASTA to parquet format.</p>
+<h3 id="gene-map-description">Description<a class="headerlink" href="#gene-map-description" title="Anchor link to this section">&para;</a></h3>
+<p>Enriches protein identifications in QPX PSM or feature files with
+    gene-level metadata extracted from FASTA database headers.
 
-        # Determine default value display
-        if default_from_help:
-            default = default_from_help
-        elif param.default is not None and str(param.default) != &#39;Sentinel.UNSET&#39;:
-            if param.is_flag:
-                default = &#39;-&#39;
-            elif isinstance(param.default, (int, float)):
-                default = str(param.default)
-            elif isinstance(param.default, str):
-                default = f&#39;&lt;code&gt;{param.default}&lt;/code&gt;&#39;
-            else:
-                default = str(param.default)
-        else:
-            default = &#39;-&#39;
+    </p>
 
-        table += f&#39;&lt;tr&gt;\n&lt;td&gt;&lt;code&gt;{param_name}&lt;/code&gt;&lt;/td&gt;\n&lt;td&gt;{param_type}&lt;/td&gt;\n&lt;td&gt;{required}&lt;/td&gt;\n&lt;td&gt;{default}&lt;/td&gt;\n&lt;td&gt;{description}&lt;/td&gt;\n&lt;/tr&gt;\n&#39;
-table += &#39;&lt;/tbody&gt;\n&lt;/table&gt;&#39;
-return table
-</code></pre></div>
-<p>def generate_description(command):
-    if command.help:
-        help_text = command.help
-        if 'Example' in help_text:
-            description = help_text.split('Example')[0].strip()
-        else:
-            description = help_text.strip()
-        lines = description.split('\n')
-        if len(lines) &gt; 1:
-            description = '\n'.join(lines[1:]).strip()
-            return f'<p>{description}</p>'
-    return ''</p>
-<p>def generate_example(command, default_text=''):
-    if command.help and 'Example' in command.help:
-        example_section = command.help.split('Example')[1]
-        if ':' in example_section:
-            example_section = example_section.split(':', 1)[1]
-        example_section = textwrap.dedent(example_section).strip()
-        output = ''
-        if default_text:
-            output += f'<p>{default_text}</p>\n'
-        output += f'<pre><code class="language-bash">{example_section}</code></pre>'
-        return output
-    return ''
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>## Overview
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>The `transform` command group provides tools for processing and transforming QPX data into various downstream formats. These commands enable gene annotation and protein-level quantification from feature data.
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>## Available Commands
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>- [gene-map](#gene-map) - Map genes from FASTA
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>- [quantify](#quantify) - Protein quantification via mokume (DirectLFQ, MaxLFQ, iBAQ, TopN, etc.)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>---
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>## gene-map
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>Map gene information from FASTA to parquet format.
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>### Description {#gene-map-description}
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>from qpx.cli.transform import transform_gene_map_cmd
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>print(generate_description(transform_gene_map_cmd))
-</span></code></pre></div></p>
 <h3 id="gene-map-parameters">Parameters<a class="headerlink" href="#gene-map-parameters" title="Anchor link to this section">&para;</a></h3>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_gene_map_cmd
-print(generate_params_table(transform_gene_map_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>### Usage Examples {#gene-map-examples}
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>#### Basic Example {#gene-map-example-basic}
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>from qpx.cli.transform import transform_gene_map_cmd
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>print(generate_example(transform_gene_map_cmd, &#39;Map gene information to parquet file:&#39;))
-</span></code></pre></div></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--parquet-path</code></td>
+<td>FILE</td>
+<td>Yes</td>
+<td>-</td>
+<td>QPX PSM or feature parquet file path</td>
+</tr>
+<tr>
+<td><code>--fasta</code></td>
+<td>FILE</td>
+<td>Yes</td>
+<td>-</td>
+<td>FASTA database file path</td>
+</tr>
+<tr>
+<td><code>--output-folder</code></td>
+<td>DIRECTORY</td>
+<td>Yes</td>
+<td>-</td>
+<td>Output directory for generated files</td>
+</tr>
+<tr>
+<td><code>--species</code></td>
+<td>TEXT</td>
+<td>No</td>
+<td><code>human</code></td>
+<td>Species name for gene mapping</td>
+</tr>
+<tr>
+<td><code>--verbose</code></td>
+<td>FLAG</td>
+<td>No</td>
+<td>-</td>
+<td>Enable verbose logging</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="gene-map-examples">Usage Examples<a class="headerlink" href="#gene-map-examples" title="Anchor link to this section">&para;</a></h3>
+<h4 id="gene-map-example-basic">Basic Example<a class="headerlink" href="#gene-map-example-basic" title="Anchor link to this section">&para;</a></h4>
+<p>Map gene information to parquet file:</p>
+<pre><code class="language-bash">qpxc transform gene-map \
+    --parquet-path ./output/psm.parquet \
+    --fasta proteins.fasta \
+    --output-folder ./output \
+    --species human</code></pre>
+
 <h4 id="gene-map-example-species">With Species Parameter<a class="headerlink" href="#gene-map-example-species" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>gene-map<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--parquet-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--fasta<span class="w"> </span>tests/examples/fasta/Homo-sapiens.fasta<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--species<span class="w"> </span>human
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>gene-map<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>--parquet-path<span class="w"> </span>./output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--fasta<span class="w"> </span>tests/examples/fasta/Homo-sapiens.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--output-folder<span class="w"> </span>./output<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>--species<span class="w"> </span>human
 </span></code></pre></div>
 <h3 id="gene-map-output">Output Files<a class="headerlink" href="#gene-map-output" title="Anchor link to this section">&para;</a></h3>
 <ul>
@@ -2511,15 +2504,94 @@ print(generate_params_table(transform_gene_map_cmd))
 <h2 id="quantify">quantify<a class="headerlink" href="#quantify" title="Anchor link to this section">&para;</a></h2>
 <p>Compute protein-level quantification from QPX feature data using <a href="https://github.com/bigbio/mokume">mokume</a>.</p>
 <h3 id="quantify-description">Description<a class="headerlink" href="#quantify-description" title="Anchor link to this section">&para;</a></h3>
-<p>```python exec="1" html="1" session="doc_utils"
-from qpx.cli.transform import transform_quantify_cmd
-print(generate_description(transform_quantify_cmd))
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>### Parameters {#quantify-parameters}
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>```python exec=&quot;1&quot; html=&quot;1&quot; session=&quot;doc_utils&quot;
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>from qpx.cli.transform import transform_quantify_cmd
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>print(generate_params_table(transform_quantify_cmd))
-</span></code></pre></div></p>
+<p>Reads a QPX feature.parquet file, extracts peptide-level intensities,
+    and computes protein-level quantification using the selected method.
+
+    
+    Supported methods:
+      directlfq  — DirectLFQ intensity traces (default)
+      maxlfq     — MaxLFQ delayed normalization
+      topn       — Average of N most intense peptides
+      top3       — Average of 3 most intense peptides
+      ibaq       — Intensity-Based Absolute Quantification (requires --fasta)
+      sum        — Sum of all peptide intensities
+
+    </p>
+
+<h3 id="quantify-parameters">Parameters<a class="headerlink" href="#quantify-parameters" title="Anchor link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--feature-path</code></td>
+<td>FILE</td>
+<td>Yes</td>
+<td>-</td>
+<td>QPX feature.parquet file path</td>
+</tr>
+<tr>
+<td><code>--method</code></td>
+<td>TEXT</td>
+<td>No</td>
+<td><code>directlfq</code></td>
+<td>Quantification method (directlfq, maxlfq, topn, top3, ibaq, sum)</td>
+</tr>
+<tr>
+<td><code>--fasta</code></td>
+<td>FILE</td>
+<td>No</td>
+<td>-</td>
+<td>FASTA database (required for ibaq method)</td>
+</tr>
+<tr>
+<td><code>--enzyme</code></td>
+<td>TEXT</td>
+<td>No</td>
+<td>Trypsin</td>
+<td>Enzyme for iBAQ digestion (default: Trypsin)</td>
+</tr>
+<tr>
+<td><code>--topn-n</code></td>
+<td>INTEGER</td>
+<td>No</td>
+<td>3</td>
+<td>N for TopN method (default: 3)</td>
+</tr>
+<tr>
+<td><code>--threads</code></td>
+<td>INTEGER</td>
+<td>No</td>
+<td>-1</td>
+<td>Parallel threads for MaxLFQ (-1 = all cores)</td>
+</tr>
+<tr>
+<td><code>--output</code></td>
+<td>PATH</td>
+<td>Yes</td>
+<td>-</td>
+<td>Output file path (.parquet or .tsv)</td>
+</tr>
+<tr>
+<td><code>--normalize</code></td>
+<td>FLAG</td>
+<td>No</td>
+<td>-</td>
+<td>Normalize quantification values</td>
+</tr>
+<tr>
+<td><code>--verbose</code></td>
+<td>FLAG</td>
+<td>No</td>
+<td>-</td>
+<td>Enable verbose logging</td>
+</tr>
+</tbody>
+</table>
+
 <h3 id="supported-methods">Supported Methods<a class="headerlink" href="#supported-methods" title="Anchor link to this section">&para;</a></h3>
 <table>
 <thead>
@@ -2564,28 +2636,28 @@ print(generate_description(transform_quantify_cmd))
 </table>
 <h3 id="quantify-examples">Usage Examples<a class="headerlink" href="#quantify-examples" title="Anchor link to this section">&para;</a></h3>
 <h4 id="quantify-example-directlfq">DirectLFQ (default)<a class="headerlink" href="#quantify-example-directlfq" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>--method<span class="w"> </span>directlfq<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_directlfq.parquet
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--method<span class="w"> </span>directlfq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_directlfq.parquet
 </span></code></pre></div>
 <h4 id="quantify-example-ibaq">iBAQ (requires FASTA)<a class="headerlink" href="#quantify-example-ibaq" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--method<span class="w"> </span>ibaq<span class="w"> </span>--fasta<span class="w"> </span>proteome.fasta<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_ibaq.tsv
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--method<span class="w"> </span>ibaq<span class="w"> </span>--fasta<span class="w"> </span>proteome.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_ibaq.tsv
 </span></code></pre></div>
 <h4 id="quantify-example-maxlfq">MaxLFQ with 8 threads<a class="headerlink" href="#quantify-example-maxlfq" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--method<span class="w"> </span>maxlfq<span class="w"> </span>--threads<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_maxlfq.parquet
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>--method<span class="w"> </span>maxlfq<span class="w"> </span>--threads<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_maxlfq.parquet
 </span></code></pre></div>
 <h4 id="quantify-example-topn">TopN with normalization<a class="headerlink" href="#quantify-example-topn" title="Anchor link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span>--method<span class="w"> </span>topn<span class="w"> </span>--topn-n<span class="w"> </span><span class="m">5</span><span class="w"> </span>--normalize<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_top5.parquet
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>qpxc<span class="w"> </span>transform<span class="w"> </span>quantify<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--feature-path<span class="w"> </span>./qpx_output/feature.parquet<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>--method<span class="w"> </span>topn<span class="w"> </span>--topn-n<span class="w"> </span><span class="m">5</span><span class="w"> </span>--normalize<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>-o<span class="w"> </span>proteins_top5.parquet
 </span></code></pre></div>
 <h3 id="quantify-output">Output Files<a class="headerlink" href="#quantify-output" title="Anchor link to this section">&para;</a></h3>
 <ul>
@@ -2814,6 +2886,8 @@ print(generate_description(transform_quantify_cmd))
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../assets/_markdown_exec_pyodide.js"></script>
       
     
   </body>
