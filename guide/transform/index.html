@@ -2681,6 +2681,7 @@
 <h3 id="quantify-best-practices">Best Practices<a class="headerlink" href="#quantify-best-practices" title="Anchor link to this section">&para;</a></h3>
 <ul>
 <li>Ensure QPX feature.parquet contains valid <code>anchor_protein</code>, <code>intensities</code>, and <code>run_file_name</code> fields</li>
+<li>If using older QPX datasets, ensure fields have been migrated from legacy names (<code>precursor_charge</code> → <code>charge</code>, <code>id_scan</code> → <code>scan</code>)</li>
 <li>Decoy entries (<code>is_decoy=true</code>) and zero-intensity rows are automatically filtered</li>
 <li>Use <code>--normalize</code> for cross-sample normalization</li>
 <li>Use <code>--threads</code> to control parallelism for MaxLFQ</li>
