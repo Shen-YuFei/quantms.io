@@ -53,7 +53,7 @@ class DatasetCollection:
                     # the rows the dataset itself returns, silently
                     # (bigbio/qpx#286). ``_file_paths`` falls back to the single
                     # file for non-sharded structures.
-                    file_paths = getattr(struct, "_file_paths", None) or [struct._file_path]
+                    file_paths = struct.file_paths
                     if Path(file_paths[0]).is_dir():
                         # Hive-partitioned structures are a single directory.
                         self._engine.register_partitioned_parquet(indexed_name, file_paths[0])

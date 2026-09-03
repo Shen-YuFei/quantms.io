@@ -37,6 +37,16 @@ class BaseStructure:
         self._file_paths = [Path(p) for p in file_paths] if file_paths else [file_path]
         self._query = LazyQuery(engine, table_name)
 
+    @property
+    def file_paths(self) -> list[Path]:
+        """Every file backing this structure, in registration order.
+
+        A sharded structure has more than one; ``_file_path`` names only the
+        first. Anything re-registering the data from a path must use this, or it
+        silently reads a subset (bigbio/qpx#286).
+        """
+        return list(self._file_paths)
+
     @classmethod
     def from_file(cls, path: str | Path, **engine_kwargs) -> BaseStructure:
         """Open a standalone Parquet file (creates its own DuckDB engine)."""
