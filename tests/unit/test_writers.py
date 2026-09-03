@@ -248,3 +248,62 @@ def test_pg_write_dataframe_explodes_intensities(tmp_path):
     assert table.num_rows == 2, "intensities list should explode into one row per label"
     assert set(table.column("label").to_pylist()) == {"TMT126", "TMT127N"}
     assert set(table.column("intensity").to_pylist()) == {5000.0, 6000.0}
+
+
+class TestAtomicWrites:
+    """A failed conversion must not destroy an existing valid file.
+
+    The writer used to open the destination directly, so a converter that died
+    mid-run left a truncated file where a good one had been (bigbio/qpx#288).
+    This is not hypothetical: a 5,798-run DIA conversion was killed three times
+    mid-write, twice by a full filesystem.
+    """
+
+    # batch_size defaults to 1,000,000, so a single buffered record never reaches
+    # disk and nothing is at risk. Flush on every record so the writer really has
+    # an open file when the failure lands — that is the situation being tested.
+    BATCH = 1
+
+    @classmethod
+    def _write_one(cls, path):
+        with FeatureWriter(str(path), batch_size=cls.BATCH) as w:
+            w.write_batch([make_feature_record()])
+
+    def test_existing_file_survives_a_failed_write(self, tmp_path):
+        path = tmp_path / "x.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+
+        with pytest.raises(RuntimeError):
+            with FeatureWriter(str(path), batch_size=self.BATCH) as w:
+                w.write_batch([make_feature_record()])
+                raise RuntimeError("converter blew up mid-run")
+
+        assert path.read_bytes() == good_bytes, "the previous valid file was modified"
+        assert parquet_row_count(str(path)) == 1
+
+    def test_no_staging_files_are_left_behind(self, tmp_path):
+        path = tmp_path / "y.feature.parquet"
+        self._write_one(path)
+        with pytest.raises(RuntimeError):
+            with FeatureWriter(str(path), batch_size=self.BATCH) as w:
+                w.write_batch([make_feature_record()])
+                raise RuntimeError("boom")
+
+        leftovers = [p.name for p in tmp_path.iterdir() if p.name != path.name]
+        assert leftovers == [], f"staging files left behind: {leftovers}"
+
+    def test_successful_write_publishes_to_the_destination(self, tmp_path):
+        path = tmp_path / "z.feature.parquet"
+        self._write_one(path)
+        assert path.exists()
+        assert parquet_row_count(str(path)) == 1
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    def test_failed_write_leaves_no_file_when_there_was_none(self, tmp_path):
+        path = tmp_path / "fresh.feature.parquet"
+        with pytest.raises(RuntimeError):
+            with FeatureWriter(str(path), batch_size=self.BATCH) as w:
+                w.write_batch([make_feature_record()])
+                raise RuntimeError("boom")
+        assert not path.exists(), "a partial file was published for a failed run"
