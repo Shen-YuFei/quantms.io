@@ -27,6 +27,21 @@ _PEP_META_KEYS = ("Posterior Error Probability_score", "PEP", "pep")
 _QVALUE_SCORE_TYPES = ("q-value", "qvalue", "fdr")
 
 
+def mass_error_ppm(calculated_mz, observed_mz) -> float | None:
+    """Relative precursor mass error in ppm, or ``None`` when it is not measurable.
+
+    Only meaningful when *observed_mz* is a real measurement. A producer that has
+    no measured m/z and echoes the theoretical value back would yield a constant
+    0.0 ppm, which reads as perfect accuracy rather than as missing data — so an
+    exact match is reported as ``None`` rather than as a measured zero.
+    """
+    if not calculated_mz or observed_mz is None:
+        return None
+    if observed_mz == calculated_mz:
+        return None
+    return float((observed_mz - calculated_mz) / calculated_mz * 1e6)
+
+
 def pep_of(hit) -> float | None:
     """Posterior error probability for a PeptideHit, or ``None`` when absent."""
     for mv in _PEP_META_KEYS:
@@ -402,6 +417,10 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     group = group_map.get(orig) if (group_map and orig is not None) else None
     anchor_protein = group[0] if group else orig
     pg_accessions = [{"accession": a, "start": None, "end": None, "pre": None, "post": None} for a in group] if group else None
+    # A peptide is unique when its group resolves to exactly one protein. The
+    # column was previously left null even though the membership is right here.
+    unique = (len(group) == 1) if group else (True if anchor_protein else None)
+    error_ppm = mass_error_ppm(calculated_mz, observed_mz)
 
     records: list[dict] = []
     for run, entry in _group_subfeatures_by_run(cf, map_info).items():
@@ -421,6 +440,8 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
                 "is_decoy": is_decoy,
                 "calculated_mz": calculated_mz,
                 "observed_mz": observed_mz,
+                "mass_error_ppm": error_ppm,
+                "unique": unique,
                 "consensus_rt": consensus_rt,
                 "anchor_protein": anchor_protein,
                 "pg_accessions": pg_accessions,

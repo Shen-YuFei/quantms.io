@@ -1008,3 +1008,26 @@ def test_qvalue_of_returns_none_without_a_score():
     from qpx.converters.openms_consensus.feature_adapter import qvalue_of
 
     assert qvalue_of(_ScoredHit(score=None), "q-value") is None
+
+
+def test_mass_error_ppm_is_computed_from_the_two_mz_values():
+    """mass_error_ppm was null in every artifact although both inputs were present."""
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.5589294433594, 456.5606994628906) == pytest.approx(3.876, abs=1e-2)
+    assert mass_error_ppm(500.0, 499.995) == pytest.approx(-10.0, abs=1e-6)
+
+
+def test_mass_error_ppm_is_none_when_not_measurable():
+    """An echoed theoretical m/z must not be reported as 0.0 ppm.
+
+    A producer with no measured m/z that returns the calculated value would
+    otherwise yield a constant 0.0, which reads as perfect mass accuracy instead
+    of as missing data.
+    """
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.55, 456.55) is None
+    assert mass_error_ppm(456.55, None) is None
+    assert mass_error_ppm(None, 456.55) is None
+    assert mass_error_ppm(0.0, 456.55) is None
