@@ -20,6 +20,35 @@ from qpx.core.files import run_file_stem as _run_stem
 # OpenMS isobaric channel labels look like ``tmt6plex_126`` / ``itraq4plex_114``.
 _CHANNEL_RE = re.compile(r"(tmt|itraq)\d*plex?_(\d+[NC]?)", re.IGNORECASE)
 
+# Meta values OpenMS uses for the posterior error probability, best first.
+_PEP_META_KEYS = ("Posterior Error Probability_score", "PEP", "pep")
+
+# Score types that mean the PeptideIdentification's primary score IS a q-value.
+_QVALUE_SCORE_TYPES = ("q-value", "qvalue", "fdr")
+
+
+def pep_of(hit) -> float | None:
+    """Posterior error probability for a PeptideHit, or ``None`` when absent."""
+    for mv in _PEP_META_KEYS:
+        if hit.metaValueExists(mv):
+            return float(hit.getMetaValue(mv))
+    return None
+
+
+def qvalue_of(hit, score_type: str) -> float | None:
+    """Peptide-level q-value for a PeptideHit, or ``None`` when unavailable.
+
+    quantms runs FDR before export, so the PeptideIdentification's primary score
+    is usually the q-value itself — but only when ``score_type`` says so. A raw
+    search-engine score must never be written to ``peptide_qvalue``: a consumer
+    cannot tell the two apart once it is in the column, and a Percolator SVM
+    score silently read as an FDR is worse than a null.
+    """
+    if str(score_type or "").lower() not in _QVALUE_SCORE_TYPES:
+        return None
+    score = hit.getScore()
+    return float(score) if score is not None else None
+
 
 def _canonical_channel(label: Optional[str]) -> str:
     """Canonicalize an OpenMS map label to the QPX channel label.
@@ -338,6 +367,7 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     pids = cf.getPeptideIdentifications()
     if not pids or not pids[0].getHits():
         return []
+    score_type = str(pids[0].getScoreType() or "")
     by_run = _group_subfeatures_by_run(cf, map_info)
     cf_runs = set(by_run)
     scan_by_run = _scan_by_run(pids, map_info, cf_runs=cf_runs)
@@ -347,6 +377,11 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     sequence = seq_obj.toUnmodifiedString()
     additional_scores, site_scores = localization_scores(hit)
     modifications = to_modifications(seq_obj, site_scores)
+    # Confidence carried by the identification behind this consensus feature. Both
+    # are nullable in the schema, but leaving them permanently null makes an
+    # FDR-filtered table indistinguishable from an unfiltered one (bigbio/qpx#284).
+    posterior_error_probability = pep_of(hit)
+    peptide_qvalue = qvalue_of(hit, score_type)
     charge = int(cf.getCharge() or hit.getCharge() or 0)
     is_decoy = False
     if hit.metaValueExists("target_decoy"):
@@ -381,6 +416,8 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
                 "scan": scan_by_run.get(run, []),
                 "rt": entry["rt"],
                 "intensities": intensities,
+                "posterior_error_probability": posterior_error_probability,
+                "peptide_qvalue": peptide_qvalue,
                 "is_decoy": is_decoy,
                 "calculated_mz": calculated_mz,
                 "observed_mz": observed_mz,

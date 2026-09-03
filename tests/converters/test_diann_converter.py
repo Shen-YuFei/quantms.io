@@ -238,6 +238,20 @@ class TestDiaNNFeatureConversion:
         errors = FeatureSchema.validate(feature_table)
         assert not errors, f"Schema validation errors: {errors}"
 
+    def test_peptide_qvalue_is_populated(self, feature_table):
+        """Q.Value must reach the output (bigbio/qpx#284).
+
+        --qvalue-threshold filters on this value, so dropping it left the table
+        unverifiable: DIA-NN reports to 5% run-level q-value by default, and
+        without this column a consumer cannot tell a 1% table from a 5% one.
+        """
+        assert "peptide_qvalue" in feature_table.schema.names
+        values = feature_table.column("peptide_qvalue").to_pylist()
+        populated = [v for v in values if v is not None]
+        assert populated, "peptide_qvalue is null for every row"
+        for value in populated:
+            assert 0.0 <= value <= 1.0, f"q-value out of range: {value}"
+
 
 def test_plexdia_feature_collapses_channels_into_one_row(tmp_path):
     """Channel rows for one precursor become one feature with two intensities."""

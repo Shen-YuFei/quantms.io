@@ -21,6 +21,7 @@ from qpx.converters.openms_consensus.feature_adapter import (
     feature_map_info,
     load_consensus_map,
     localization_scores,
+    pep_of as _pep_of,
     to_modifications,
     to_proforma,
 )
@@ -34,9 +35,6 @@ _SCAN_RE = re.compile(r"(?:scan|index|spectrum)=(\d+)", re.IGNORECASE)
 _CYCLE_RE = re.compile(r"cycle=(\d+)", re.IGNORECASE)
 # scan is a list<int32>; keep any surrogate within the signed 32-bit range.
 _INT32_MASK = 0x7FFFFFFF
-
-_PEP_META_KEYS = ("Posterior Error Probability_score", "PEP", "pep")
-
 
 def _surrogate_scan(spectrum_ref: str) -> int:
     """Deterministic int32 surrogate ordinal for a nativeID with no scan token.
@@ -70,14 +68,6 @@ def _scan_of(spectrum_ref: str) -> list[int]:
     if cycles:
         return cycles
     return [_surrogate_scan(ref)]
-
-
-def _pep_of(hit) -> float | None:
-    """Posterior error probability for a PeptideHit, or ``None`` when absent."""
-    for mv in _PEP_META_KEYS:
-        if hit.metaValueExists(mv):
-            return float(hit.getMetaValue(mv))
-    return None
 
 
 def _protein_accessions(hits) -> list[str] | None:

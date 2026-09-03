@@ -358,6 +358,16 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
             else "NULL::DOUBLE AS posterior_error_probability"
         )
 
+        # Precursor Q.Value. This is the value --qvalue-threshold filters on, so
+        # dropping it left the output unverifiable: a consumer could not tell a 1%
+        # table from DIA-NN's default 5% report (bigbio/qpx#284).
+        qvalue_col = resolved.get("qvalue")
+        parts.append(
+            f"{_safe_double_sql(qvalue_col)} AS peptide_qvalue"
+            if qvalue_col and has_column(qvalue_col)
+            else "NULL::DOUBLE AS peptide_qvalue"
+        )
+
         pg_col = resolved["pg_accessions"]
         if has_decoy_col:
             parts.append(f'CAST(r."{resolved["decoy"]}" AS BOOLEAN) AS is_decoy')
@@ -590,7 +600,6 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
         group_fields = {"sequence", "charge", "run_file_name"}
         python_fields = {
             "modifications",
-            "peptide_qvalue",
             "pg_accessions",
             "pg_positions",
             # Derived identity + optional cross-refs are not produced by the
