@@ -598,6 +598,7 @@ class TestArrowPivotEquivalence:
 
     def test_matches_pandas_pivot(self):
         import pyarrow as pa
+
         from qpx.mudata import _pivot_arrow_to_sparse, _pivot_to_sparse
 
         df = self._frame()
@@ -605,9 +606,7 @@ class TestArrowPivotEquivalence:
         cols = pd.Index(sorted(df["precursor_id"].unique()), name="precursor_id")
 
         expected = _pivot_to_sparse(df, "observation_id", "precursor_id", "intensity", rows, cols)
-        actual = _pivot_arrow_to_sparse(
-            pa.Table.from_pandas(df), "observation_id", "precursor_id", "intensity", rows, cols
-        )
+        actual = _pivot_arrow_to_sparse(pa.Table.from_pandas(df), "observation_id", "precursor_id", "intensity", rows, cols)
 
         assert actual.shape == expected.shape
         assert (actual != expected).nnz == 0
@@ -615,6 +614,7 @@ class TestArrowPivotEquivalence:
     def test_unmatched_keys_are_dropped_not_misplaced(self):
         """A value absent from the index must be dropped, exactly as get_indexer does."""
         import pyarrow as pa
+
         from qpx.mudata import _pivot_arrow_to_sparse, _pivot_to_sparse
 
         df = self._frame()
@@ -622,15 +622,14 @@ class TestArrowPivotEquivalence:
         cols = pd.Index(sorted(df["precursor_id"].unique()), name="precursor_id")
 
         expected = _pivot_to_sparse(df, "observation_id", "precursor_id", "intensity", rows, cols)
-        actual = _pivot_arrow_to_sparse(
-            pa.Table.from_pandas(df), "observation_id", "precursor_id", "intensity", rows, cols
-        )
+        actual = _pivot_arrow_to_sparse(pa.Table.from_pandas(df), "observation_id", "precursor_id", "intensity", rows, cols)
 
         assert (actual != expected).nnz == 0
         assert actual.sum() == pytest.approx(110.0)  # 40.0 from the dropped r3 row is gone
 
     def test_sorted_unique_matches_pandas(self):
         import pyarrow as pa
+
         from qpx.mudata import _sorted_unique
 
         df = self._frame()
@@ -640,6 +639,7 @@ class TestArrowPivotEquivalence:
 
     def test_prepare_observations_arrow_matches_pandas(self):
         import pyarrow as pa
+
         from qpx.mudata import _prepare_observations, _prepare_observations_arrow
 
         df = pd.DataFrame(

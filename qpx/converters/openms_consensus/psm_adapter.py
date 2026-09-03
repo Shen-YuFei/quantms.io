@@ -21,10 +21,14 @@ from qpx.converters.openms_consensus.feature_adapter import (
     feature_map_info,
     load_consensus_map,
     localization_scores,
-    mass_error_ppm as _mass_error_ppm,
-    pep_of as _pep_of,
     to_modifications,
     to_proforma,
+)
+from qpx.converters.openms_consensus.feature_adapter import (
+    mass_error_ppm as _mass_error_ppm,
+)
+from qpx.converters.openms_consensus.feature_adapter import (
+    pep_of as _pep_of,
 )
 
 _log = logging.getLogger(__name__)
@@ -36,6 +40,7 @@ _SCAN_RE = re.compile(r"(?:scan|index|spectrum)=(\d+)", re.IGNORECASE)
 _CYCLE_RE = re.compile(r"cycle=(\d+)", re.IGNORECASE)
 # scan is a list<int32>; keep any surrogate within the signed 32-bit range.
 _INT32_MASK = 0x7FFFFFFF
+
 
 def _surrogate_scan(spectrum_ref: str) -> int:
     """Deterministic int32 surrogate ordinal for a nativeID with no scan token.
