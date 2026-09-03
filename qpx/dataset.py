@@ -173,6 +173,7 @@ class Dataset:
                 engine=self._engine,
                 table_name=name,
                 file_path=matches[0],
+                file_paths=matches,
             )
         elif self._file_prefix is None:
             # Check for Hive-partitioned directory

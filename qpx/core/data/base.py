@@ -25,10 +25,16 @@ class BaseStructure:
 
     _schema_class = None  # Override in subclasses (e.g., FeatureSchema)
 
-    def __init__(self, engine: DuckDBEngine, table_name: str, file_path: Path):
+    def __init__(self, engine: DuckDBEngine, table_name: str, file_path: Path, file_paths=None):
         self._engine = engine
         self._table_name = table_name
         self._file_path = file_path
+        # Every file backing this structure. A sharded structure has more than
+        # one, and ``_file_path`` names only the first (kept for provenance), so
+        # anything that re-registers the data from a path MUST use this list or
+        # it silently reads a subset (bigbio/qpx#286). Defaults to the single
+        # file so producers that pass only ``file_path`` stay correct.
+        self._file_paths = [Path(p) for p in file_paths] if file_paths else [file_path]
         self._query = LazyQuery(engine, table_name)
 
     @classmethod
