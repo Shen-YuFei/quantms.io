@@ -189,3 +189,13 @@ class TestShardedCollection:
         assert collection_rows == dataset_rows, (
             f"collection saw {collection_rows} of {dataset_rows} rows — it is reading only one shard"
         )
+
+    def test_query_clone_keeps_the_shard_list(self, dataset_dir, tmp_path):
+        """A lazily-derived structure must not lose its backing files."""
+        import qpx
+
+        ds_dir, _ = self._shard(dataset_dir, tmp_path, "sharded_clone")
+        ds = qpx.open_dataset(str(ds_dir))
+        clone = ds.feature.limit(1)
+        assert clone._file_paths == ds.feature._file_paths
+        ds.close()

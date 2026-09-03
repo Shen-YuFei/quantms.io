@@ -143,6 +143,10 @@ class BaseStructure:
         clone._engine = self._engine
         clone._table_name = self._table_name
         clone._file_path = self._file_path
+        # Carry the shard list too: a clone that lost it would silently fall back
+        # to the single _file_path and re-introduce bigbio/qpx#286 for anything
+        # registering data from a cloned structure.
+        clone._file_paths = self._file_paths
         clone._query = new_query
         return clone
 
