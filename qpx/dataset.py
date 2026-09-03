@@ -66,6 +66,17 @@ class Dataset:
         "pepmap": (PepMap, ".pepmap.parquet"),
     }
 
+    @classmethod
+    def structure_names(cls) -> list[str]:
+        """Every structure name QPX knows about, in registry order.
+
+        The single source of truth for anything that needs to enumerate
+        structures — CLI choices in particular. Hand-maintained copies drifted:
+        ``pepmap`` was registered here and exposed on the API while both CLIs
+        rejected it (bigbio/qpx#289).
+        """
+        return list(cls._STRUCTURE_REGISTRY)
+
     def __init__(
         self,
         path: str | Path,

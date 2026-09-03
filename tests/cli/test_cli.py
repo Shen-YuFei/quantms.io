@@ -294,3 +294,32 @@ class TestOntologyCLI:
         runner = CliRunner()
         result = runner.invoke(qpx_main, ["ontology", "build", "--help"])
         _assert_help(result, "--source", "--all-sources")
+
+
+class TestStructureChoicesMatchTheRegistry:
+    """CLI structure choices must be derived, not hand-maintained.
+
+    pepmap was registered in Dataset._STRUCTURE_REGISTRY and exposed on the
+    public API while both CLIs rejected it, because each kept its own literal
+    list (bigbio/qpx#289).
+    """
+
+    def test_validate_offers_every_registered_structure(self):
+        from qpx.cli.validate import _VALID_STRUCTURES
+        from qpx.dataset import Dataset
+
+        assert set(_VALID_STRUCTURES) == set(Dataset._STRUCTURE_REGISTRY)
+
+    def test_query_offers_every_registered_structure(self):
+        from qpx.cli.query import _VALID_STRUCTURES
+        from qpx.dataset import Dataset
+
+        assert set(_VALID_STRUCTURES) == set(Dataset._STRUCTURE_REGISTRY)
+
+    def test_pepmap_is_accepted(self):
+        """The structure that exposed the drift."""
+        from qpx.cli.query import _VALID_STRUCTURES as query_structures
+        from qpx.cli.validate import _VALID_STRUCTURES as validate_structures
+
+        assert "pepmap" in validate_structures
+        assert "pepmap" in query_structures
