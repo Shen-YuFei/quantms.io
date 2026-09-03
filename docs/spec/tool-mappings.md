@@ -17,7 +17,6 @@ The PSM (Peptide Spectrum Match) view captures spectrum-level identification res
 | `peptidoform` | Modified sequence | Modified.Sequence | Modified Peptide |
 | `charge` | Charge | Precursor.Charge | Charge |
 | `posterior_error_probability` | PEP | PEP | --- |
-| `peptide_qvalue` | --- | Q.Value | --- |
 | `is_decoy` | Reverse | --- | --- |
 | `calculated_mz` | --- | --- | Calculated M/Z |
 | `observed_mz` | m/z | --- | Observed M/Z |
@@ -39,6 +38,7 @@ The Feature view captures quantified peptide features with intensity data. Featu
 | `peptidoform` | Modified sequence | Modified.Sequence | Modified Peptide | PeptideSequence (ProForma-normalized) |
 | `charge` | Charge | Precursor.Charge | --- | Charge / PrecursorCharge |
 | `is_decoy` | Reverse | --- | --- | ProteinName prefix |
+| `peptide_qvalue` | --- | Q.Value | --- | --- |
 | `calculated_mz` | --- | --- | Calculated M/Z | --- |
 | `observed_mz` | m/z | --- | --- | --- |
 | `rt` | Retention time | RT | --- | RetentionTime |

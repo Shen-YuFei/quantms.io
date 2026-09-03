@@ -1031,3 +1031,18 @@ def test_mass_error_ppm_is_none_when_not_measurable():
     assert mass_error_ppm(456.55, None) is None
     assert mass_error_ppm(None, 456.55) is None
     assert mass_error_ppm(0.0, 456.55) is None
+
+
+def test_mass_error_ppm_rejects_non_positive_mz():
+    """A zero m/z is missing data, not a measurement.
+
+    feature_records_for_cf substitutes 0.0 when the ConsensusFeature carries no
+    m/z, so without this guard an unmeasured feature would report roughly
+    -1e6 ppm instead of null.
+    """
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.55, 0.0) is None
+    assert mass_error_ppm(0.0, 456.55) is None
+    assert mass_error_ppm(456.55, -1.0) is None
+    assert mass_error_ppm(-456.55, 456.55) is None

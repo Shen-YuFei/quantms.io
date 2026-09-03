@@ -34,8 +34,14 @@ def mass_error_ppm(calculated_mz, observed_mz) -> float | None:
     no measured m/z and echoes the theoretical value back would yield a constant
     0.0 ppm, which reads as perfect accuracy rather than as missing data — so an
     exact match is reported as ``None`` rather than as a measured zero.
+
+    Both m/z values must be positive. ``feature_records_for_cf`` substitutes 0.0
+    when the ConsensusFeature carries no m/z, and treating that as a measurement
+    would report roughly -1e6 ppm instead of "not measured".
     """
-    if not calculated_mz or observed_mz is None:
+    if calculated_mz is None or observed_mz is None:
+        return None
+    if calculated_mz <= 0 or observed_mz <= 0:
         return None
     if observed_mz == calculated_mz:
         return None
