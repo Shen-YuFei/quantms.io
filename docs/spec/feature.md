@@ -48,6 +48,7 @@ These fields are shared with the PSM view and describe the peptide identificatio
 | `modifications` | Structured list of modifications with name, accession, position, and localization scores | array[struct], null | no |
 | `charge` | Charge of the quantified analyte | int16 | yes |
 | `posterior_error_probability` | Posterior error probability (PEP) for the peptide match | float64, null | no |
+| `peptide_qvalue` | Peptide-level q-value; null when the search engine does not provide one | float64, null | optional |
 | `is_decoy` | Whether the peptide is a decoy match (`true`) or a target match (`false`); use `false` when no target-decoy search was used | bool | yes |
 | `calculated_mz` | Theoretical peptide mass-to-charge ratio based on identified sequence and modifications; null when it cannot be calculated | float32, null | yes |
 | `observed_mz` | Experimental observed peptide mass-to-charge ratio | float32 | yes |
@@ -101,7 +102,12 @@ Each entry in `pg_positions` contains:
     Gene accessions, gene names, and unique peptide indicators are optionally included in the feature file for convenience. Protein-level scores are stored in the [Protein Group View](pg.md). When `pg_ids` is populated, join it directly to `pg.pg_id`. Otherwise use the semantic protein mapping (for example, `anchor_protein`) and require `feature.run_file_name` to be a member of `pg.grouped_runs`.
 
 !!! info "Optional vs nullable"
-    `pg_global_qvalue` is **optional** — the column may be absent from the file entirely if the search engine does not provide a protein group q-value. When present, individual values may be null.
+    `pg_global_qvalue` and `peptide_qvalue` are **optional** — the column may be absent from the file entirely if the search engine does not provide that q-value. When present, individual values may be null.
+
+!!! warning "Which q-value to read"
+    `peptide_qvalue` is the canonical peptide-level q-value and is the field to read when filtering or reporting FDR. A producer may *additionally* place its own q-values in `additional_scores` under tool-specific names (DIA-NN, for example, also emits `qvalue`, `global_qvalue` and `pg_qvalue` there). Those are for provenance and tool-specific analysis; do not rely on searching `additional_scores` for a q-value, because the score name varies by producer.
+
+    A value belongs in `peptide_qvalue` **only** when the producer states it is a q-value. Writing a raw search-engine score (a Percolator SVM score, an E-value) into this column makes it indistinguishable from an FDR downstream — leave the field null instead.
 
 ### Spectra Reference
 

@@ -47,13 +47,23 @@ The following score names are commonly used across QPX views. All names are `sna
 | `msgf_raw_score` | PSM | higher is better | Raw score from MS-GF+ |
 | `msgf_spec_evalue` | PSM | lower is better | Spectral E-value from MS-GF+ |
 | `sage_hyperscore` | PSM | higher is better | Hyperscore from Sage search engine |
-| `diann_qvalue` | Feature | lower is better | Run-level q-value from DIA-NN |
-| `diann_global_qvalue` | Feature | lower is better | Global q-value from DIA-NN |
+| `qvalue` | Feature | lower is better | Run-level precursor q-value, as emitted by the DIA-NN converter. The same value is written to the typed `feature.peptide_qvalue` column; read that column rather than this score |
+| `pg_qvalue` | Feature | lower is better | Run-level protein-group q-value, as emitted by the DIA-NN converter |
+| `diann_lib_qvalue` | Feature | lower is better | Library q-value from DIA-NN |
 | `diann_cscore` | Feature | higher is better | Confidence score from DIA-NN |
+| `diann_evidence` | Feature | higher is better | Evidence score from DIA-NN |
+| `diann_ms1_profile_corr` | Feature | higher is better | MS1 profile correlation from DIA-NN |
+| `diann_mass_evidence` | Feature | higher is better | Mass evidence score from DIA-NN |
+| `diann_quantity_quality` | Feature | higher is better | Quantity quality score from DIA-NN |
 | `consensus_support` | PSM | higher is better | Number of search engines supporting the identification |
 
 !!! tip "Naming convention for new scores"
-    When adding tool-specific scores, use `snake_case` with the tool name as prefix: `{tool}_{score}`. For example, `comet_xcorr`, `diann_qvalue`, `sage_hyperscore`. Register the mapping to the proper ontology term in `ontology.parquet` (see [Ontology Mapping](ontology.md)).
+    When adding tool-specific scores, use `snake_case` with the tool name as prefix: `{tool}_{score}`. For example, `comet_xcorr`, `diann_cscore`, `sage_hyperscore`. Register the mapping to the proper ontology term in `ontology.parquet` (see [Ontology Mapping](ontology.md)).
+
+!!! warning "Names in this table are the ones producers actually write"
+    Earlier revisions listed `diann_qvalue` and `diann_global_qvalue`, which no converter emits — the DIA-NN converter writes `qvalue`, `global_qvalue` and `pg_qvalue`. The table now records the emitted names so a consumer can match on them.
+
+    Because those names vary between producers (the OpenMS converter writes `q-value`, which is neither snake_case nor in this table), **do not discover a q-value by searching `additional_scores`**. Read the typed columns instead: `feature.peptide_qvalue` for the peptide level and `feature.pg_global_qvalue` for the protein-group level.
 
 ### Protein-level additional scores
 
