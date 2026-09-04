@@ -227,12 +227,54 @@ class TestQueryFilterCLI:
         result = runner.invoke(qpx_main, ["query", "filter", "--help"])
         _assert_help(result, "--dataset-path", "--structure", "--condition")
 
+    def test_filter_reads_dataset_metadata(self, dataset_dir):
+        """The canonical dataset name resolves to the dataset_meta accessor."""
+        runner = CliRunner()
+        result = runner.invoke(
+            qpx_main,
+            [
+                "query",
+                "filter",
+                "--dataset-path",
+                str(dataset_dir),
+                "--structure",
+                "dataset",
+                "--condition",
+                "project_accession IS NOT NULL",
+                "--output-format",
+                "json",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "project_accession" in result.output
+
 
 class TestQueryHeadCLI:
     def test_head_help_renders(self):
         runner = CliRunner()
         result = runner.invoke(qpx_main, ["query", "head", "--help"])
         _assert_help(result, "--dataset-path", "--structure")
+
+    def test_head_reads_dataset_metadata(self, dataset_dir):
+        """Query head accepts the canonical dataset structure name."""
+        runner = CliRunner()
+        result = runner.invoke(
+            qpx_main,
+            [
+                "query",
+                "head",
+                "--dataset-path",
+                str(dataset_dir),
+                "--structure",
+                "dataset",
+                "--output-format",
+                "csv",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "project_accession" in result.output
 
 
 # ---------------------------------------------------------------------------

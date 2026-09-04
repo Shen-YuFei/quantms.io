@@ -233,7 +233,8 @@ def query_filter_cmd(
     import qpx
 
     with qpx.open_dataset(dataset_path, structures=[structure]) as ds:
-        struct = getattr(ds, structure, None)
+        structure_attr = "dataset_meta" if structure == "dataset" else structure
+        struct = getattr(ds, structure_attr, None)
         if struct is None:
             raise click.ClickException(
                 f"Structure '{structure}' not found in dataset at {dataset_path}. Available: {ds.available_structures}"
@@ -323,7 +324,8 @@ def query_head_cmd(
     import qpx
 
     with qpx.open_dataset(dataset_path, structures=[structure]) as ds:
-        struct = getattr(ds, structure, None)
+        structure_attr = "dataset_meta" if structure == "dataset" else structure
+        struct = getattr(ds, structure_attr, None)
         if struct is None:
             raise click.ClickException(
                 f"Structure '{structure}' not found in dataset at {dataset_path}. Available: {ds.available_structures}"
