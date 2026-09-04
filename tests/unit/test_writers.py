@@ -330,6 +330,54 @@ class TestAtomicWrites:
         assert path.read_bytes() == good_bytes, "a partial file was published after a caught error"
         assert [p.name for p in tmp_path.iterdir()] == [path.name]
 
+    def test_context_after_a_caught_write_error_does_not_publish(self, tmp_path):
+        """A caught write error must still prevent context-manager promotion."""
+        path = tmp_path / "caught-context.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+
+        with FeatureWriter(str(path), batch_size=self.BATCH) as writer:
+            writer.write_batch([make_feature_record(sequence="PARTIAL", peptidoform="PARTIAL")])
+            with pytest.raises(ValueError):
+                writer.write_batch([{"not": "a valid record"}])
+
+        assert path.read_bytes() == good_bytes, "context exit published a partial file after a caught error"
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    def test_dataframe_conversion_error_latches_failure(self, tmp_path):
+        """A caught DataFrame conversion error must preserve the destination."""
+        import pandas as pd
+
+        path = tmp_path / "caught-dataframe.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+
+        writer = FeatureWriter(str(path), batch_size=self.BATCH)
+        writer.write_batch([make_feature_record(sequence="PARTIAL", peptidoform="PARTIAL")])
+        with pytest.raises(KeyError):
+            writer.write_dataframe(pd.DataFrame([{"not": "a valid record"}]))
+        writer.close()
+
+        assert path.read_bytes() == good_bytes, "DataFrame failure allowed a partial file to be published"
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    def test_pg_preprocessing_error_latches_failure(self, tmp_path):
+        """PgWriter preprocessing runs inside the same atomic-write guard."""
+        path = tmp_path / "caught-preprocess.pg.parquet"
+        with PgWriter(str(path), batch_size=self.BATCH) as writer:
+            writer.write_batch([make_pg_record()])
+        good_bytes = path.read_bytes()
+
+        bad_record = make_pg_record()
+        bad_record["additional_intensities"] = 1
+        with PgWriter(str(path), batch_size=self.BATCH) as writer:
+            writer.write_batch([make_pg_record(anchor_protein="PARTIAL")])
+            with pytest.raises(TypeError):
+                writer.write_batch([bad_record])
+
+        assert path.read_bytes() == good_bytes, "PgWriter preprocessing failure published a partial file"
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
     def test_two_writers_in_one_process_do_not_share_a_staging_file(self, tmp_path):
         """The staging name must be unique per writer, not per process."""
         path = tmp_path / "shared.feature.parquet"

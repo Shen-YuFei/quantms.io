@@ -476,6 +476,9 @@ class BaseWriter:
         omits them; a genuinely missing *required* column is left absent so
         ``from_pandas`` surfaces it as a clear error.
         """
+        return self._guard(self._write_dataframe, df)
+
+    def _write_dataframe(self, df: "pd.DataFrame"):
         id_field = self._id_field
         relaxed = self._relaxed_id_schema()
         missing = [f.name for f in relaxed if f.name not in df.columns and (f.nullable or f.name == id_field)]
@@ -743,4 +746,4 @@ class BaseWriter:
     def __exit__(self, exc_type, _exc_value, _traceback):
         # Preserve an exception raised inside the context instead of masking it
         # with validation of a partial output file.
-        self._close(validate=exc_type is None)
+        self._close(validate=exc_type is None and not self._write_failed)
