@@ -146,7 +146,7 @@ def _stream_feature_psm(
     map_run,
     seen,
     batch,
-    include_unassigned_psms=False,
+    include_unassigned_psms=True,
     enzyme=None,
 ):
     """One ordered element/unassigned pass: write feature/psm in batches and
@@ -180,7 +180,7 @@ def _stream_feature_psm(
         else:  # unassigned peptide identification
             if pw is not None and include_unassigned_psms:
                 # Unassigned PSMs map to no feature -> feature_id stays null.
-                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen, enzyme=enzyme))
+                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen, enzyme=enzyme, assigned=False))
             if maps is not None:
                 # Protein inference always sees every identification, whether or
                 # not the PSM rows are emitted: dropping evidence would change the
@@ -207,7 +207,7 @@ def _convert_streaming(
     creator,
     pg_top,
     compression="zstd",
-    include_unassigned_psms=False,
+    include_unassigned_psms=True,
 ) -> dict:
     """Single-pass, low-memory feature/psm/pg from a streamed consensusXML.
 
@@ -384,18 +384,27 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         streaming: Optional[bool] = None,
         project_accession: Optional[str] = None,
         compression: str = "zstd",
-        include_unassigned_psms: bool = False,
+        include_unassigned_psms: bool = True,
     ) -> dict[str, Path]:
         """Write the requested QPX views and return ``{structure: parquet path}``.
 
-        ``include_unassigned_psms`` (default ``False``) controls whether
+        ``include_unassigned_psms`` (default ``True``) controls whether
         identifications that are not linked to any consensus feature reach
-        ``psm.parquet``. They are identified spectra, but they carry no
-        quantification and their ``feature_id`` is null, so a ``psm -> feature``
-        join drops them anyway — 41% of rows on a real label-free dataset. The
-        default therefore emits a quantified-only PSM view; pass ``True`` to keep
-        them. Protein inference is unaffected either way: it always sees every
-        identification, because dropping evidence would change the protein groups.
+        ``psm.parquet``.
+
+        They are kept by default because they are real identifications: on a real
+        label-free dataset they are 41% of PSM rows, their median PEP is *better*
+        than the assigned ones, and 15% of their peptidoforms appear nowhere else
+        in the file. Dropping them would silently cost identification evidence.
+        They are marked with a ``psm_assignment=unassigned`` cv_param so a
+        consumer can select or exclude them without inferring it from a null
+        ``feature_id``.
+
+        Pass ``False`` for a quantified-only PSM view, where every row joins to a
+        feature. Note that features themselves are always identified — a
+        consensus feature with no peptide hit is never emitted — so this option
+        has no bearing on the feature view. Protein inference is unaffected
+        either way: it always sees every identification.
 
         ``structures`` selects which of feature/psm/pg/run/sample to emit. pg
         carries an interim unnormalized unique-peptide-sum intensity; ``pg_top``
@@ -551,7 +560,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         creator,
         pg_top,
         compression="zstd",
-        include_unassigned_psms=False,
+        include_unassigned_psms=True,
     ) -> dict:
         """feature/psm/pg via the in-memory pyopenms map (loaded once, iterated cheaply)."""
         from qpx.converters.openms_consensus.feature_adapter import feature_map_info, resolve_enzyme
@@ -591,7 +600,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
                 psm_recs.extend(cf_psms)
             if want_psm and include_unassigned_psms:
                 for pid in cm.getUnassignedPeptideIdentifications():
-                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme))
+                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme, assigned=False))
             if want_feature:
                 written["feature"] = _write_view(
                     FeatureWriter,

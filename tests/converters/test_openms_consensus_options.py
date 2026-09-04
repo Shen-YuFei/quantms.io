@@ -56,8 +56,13 @@ class TestSkipUnassignedPsms:
         return pq.read_table(str(out / "X.psm.parquet")).to_pylist()
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
-    def test_default_drops_unassigned(self, tmp_path, stream):
-        """The default PSM view is quantified-only."""
+    def test_default_keeps_unassigned_and_marks_them(self, tmp_path, stream):
+        """Unassigned PSMs are kept by default and are self-identifying.
+
+        They are real identifications with no quantified feature, so the artifact
+        keeps them; the cv_param means a consumer can select them explicitly
+        rather than inferring intent from a null feature_id.
+        """
         import pyarrow.parquet as pq
 
         from qpx.converters.openms_consensus import converter as conv
@@ -74,15 +79,22 @@ class TestSkipUnassignedPsms:
             project_accession="X",
         )
         rows = pq.read_table(str(out / "X.psm.parquet")).to_pylist()
-        assert "UNASSIGNEDK" not in {r["sequence"] for r in rows}
-        assert all(r["feature_id"] is not None for r in rows)
+        unassigned = [r for r in rows if r["sequence"] == "UNASSIGNEDK"]
+        assert unassigned, "an unassigned PSM must be kept by default"
+        for record in unassigned:
+            assert record["feature_id"] is None
+            assert record["cv_params"] == [{"cv_name": "psm_assignment", "cv_value": "unassigned"}]
+        for record in (r for r in rows if r["sequence"] != "UNASSIGNEDK"):
+            assert record["feature_id"] is not None, "assigned PSMs still link to a feature"
+            marks = [p for p in (record["cv_params"] or []) if p["cv_name"] == "psm_assignment"]
+            assert not marks, "assigned PSMs must not carry the unassigned marker"
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
-    def test_opt_in_keeps_unassigned(self, tmp_path, stream):
-        rows = self._convert(tmp_path, f"keep_{stream}", include=True, stream=stream)
-        seqs = {r["sequence"] for r in rows}
-        assert "UNASSIGNEDK" in seqs, "opt-in must restore them"
-        assert any(r["feature_id"] is None for r in rows)
+    def test_opt_out_drops_unassigned(self, tmp_path, stream):
+        """--no-include-unassigned-psms gives a quantified-only PSM view."""
+        rows = self._convert(tmp_path, f"drop_{stream}", include=False, stream=stream)
+        assert "UNASSIGNEDK" not in {r["sequence"] for r in rows}
+        assert rows and all(r["feature_id"] is not None for r in rows)
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
     def test_option_drops_unassigned_on_both_paths(self, tmp_path, stream):

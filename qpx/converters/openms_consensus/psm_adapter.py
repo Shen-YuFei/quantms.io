@@ -246,8 +246,15 @@ def _psm_additional_scores(primary, hits, score, score_type, score_is_qvalue, hi
     return additional_scores, site_scores
 
 
-def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme=None) -> list[dict]:
+def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme=None, assigned=True) -> list[dict]:
     """PSM records for one PeptideIdentification (deduped via the shared ``seen`` set).
+
+    ``assigned`` says whether this PeptideIdentification belongs to a consensus
+    feature. When it does not, the record is stamped with a
+    ``psm_assignment=unassigned`` cv_param: those rows are real identifications
+    that simply have no quantified feature, and the marker lets a consumer select
+    or exclude them explicitly instead of inferring it from a null ``feature_id``
+    (bigbio/qpx#299).
 
     ``cf_runs`` is the consensus feature's element-run set (passed for assigned
     PIDs); it lets :func:`_run_resolver` attribute a PID whose ``id_merge_index``
@@ -317,6 +324,7 @@ def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme
                 "rt": float(pid.getRT()) if pid.getRT() else None,
                 "calculated_mz": calc_mz,
                 "observed_mz": obs_mz,
+                "cv_params": (None if assigned else [{"cv_name": "psm_assignment", "cv_value": "unassigned"}]),
                 "mass_error_ppm": _mass_error_ppm(calc_mz, obs_mz),
                 "missed_cleavages": (count_missed_cleavages(seq_obj.toUnmodifiedString(), enzyme) if enzyme else None),
                 "posterior_error_probability": pep,
