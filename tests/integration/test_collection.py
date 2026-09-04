@@ -197,7 +197,7 @@ class TestShardedCollection:
         ds_dir, _ = self._shard(dataset_dir, tmp_path, "sharded_clone")
         ds = qpx.open_dataset(str(ds_dir))
         clone = ds.feature.limit(1)
-        assert clone._file_paths == ds.feature._file_paths
+        assert clone.file_paths == ds.feature.file_paths
         ds.close()
 
     def test_s3_locator_is_not_mangled_by_path(self):

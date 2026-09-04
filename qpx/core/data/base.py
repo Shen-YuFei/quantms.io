@@ -25,7 +25,14 @@ class BaseStructure:
 
     _schema_class = None  # Override in subclasses (e.g., FeatureSchema)
 
-    def __init__(self, engine: DuckDBEngine, table_name: str, file_path: Path, file_paths=None):
+    def __init__(
+        self,
+        engine: DuckDBEngine,
+        table_name: str,
+        file_path: Path,
+        file_paths=None,
+        query: LazyQuery | None = None,
+    ):
         self._engine = engine
         self._table_name = table_name
         self._file_path = file_path
@@ -37,7 +44,7 @@ class BaseStructure:
         # Keep locators exactly as given. Path() would rewrite an "s3://bucket/x"
         # URI to "s3:/bucket/x" and it would no longer resolve.
         self._file_paths = list(file_paths) if file_paths else [file_path]
-        self._query = LazyQuery(engine, table_name)
+        self._query = query if query is not None else LazyQuery(engine, table_name)
 
     @property
     def file_paths(self) -> list:
@@ -151,16 +158,13 @@ class BaseStructure:
     # --- Internals ---
     def _with_query(self, new_query: LazyQuery) -> BaseStructure:
         """Return a clone with a different LazyQuery (immutable pattern)."""
-        clone = self.__class__.__new__(self.__class__)
-        clone._engine = self._engine
-        clone._table_name = self._table_name
-        clone._file_path = self._file_path
-        # Carry the shard list too: a clone that lost it would silently fall back
-        # to the single _file_path and re-introduce bigbio/qpx#286 for anything
-        # registering data from a cloned structure.
-        clone._file_paths = self._file_paths
-        clone._query = new_query
-        return clone
+        return self.__class__(
+            engine=self._engine,
+            table_name=self._table_name,
+            file_path=self._file_path,
+            file_paths=self.file_paths,
+            query=new_query,
+        )
 
     def _auto_join_key(self, other: BaseStructure) -> str:
         my_cols = set(self.schema().names)
