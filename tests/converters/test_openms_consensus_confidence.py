@@ -99,6 +99,24 @@ def test_mass_error_ppm_rejects_non_positive_mz():
     assert mass_error_ppm(-456.55, 456.55) is None
 
 
+def test_zero_charge_feature_has_no_mass_error(tmp_path):
+    """A missing charge cannot produce a theoretical mass error."""
+    path = tmp_path / "zero-charge.consensusXML"
+    path.write_text(_TMT_CONSENSUSXML.replace('charge="2"', 'charge="0"'))
+    consensus_map = load_consensus_map(str(path))
+    map_info = feature_map_info(consensus_map)
+
+    records = feature_records_for_cf(
+        list(consensus_map)[0],
+        map_info,
+        group_map={"P12345": ["P12345"]},
+    )
+
+    assert records
+    assert all(record["charge"] == 0 for record in records)
+    assert all(record["mass_error_ppm"] is None for record in records)
+
+
 def test_unique_is_unknown_without_a_resolved_group(tmp_path):
     """No resolved group means unknown, not unique."""
     path = tmp_path / "in.consensusXML"

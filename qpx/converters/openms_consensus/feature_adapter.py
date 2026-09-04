@@ -447,7 +447,7 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     # With no resolved group the answer is unknown: a lone peptide evidence is
     # not proof of uniqueness, and claiming True there would invent information.
     unique = (len(group) == 1) if group else None
-    error_ppm = mass_error_ppm(calculated_mz, observed_mz)
+    error_ppm = mass_error_ppm(calculated_mz, observed_mz) if charge > 0 else None
 
     records: list[dict] = []
     for run, entry in by_run.items():
