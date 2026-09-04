@@ -991,3 +991,83 @@ def test_openms_consensus_identity_retains_all_spectrum_references(tmp_path, str
     assert table.column("scan").to_pylist() == [[42, 43]]
     assert table.column("consensus_rt").to_pylist() == pytest.approx([100.123456])
     assert table.schema.metadata[b"identity_composite"] == (b"peptidoform,charge,run_file_name,rt,scan,observed_mz,consensus_rt")
+
+
+class TestSkipUnassignedPsms:
+    """`include_unassigned_psms=False` drops PSMs that link to no feature.
+
+    Unassigned identifications carry no quantification and their feature_id is
+    null, so a psm->feature join silently drops them anyway — 41% of rows on a
+    real label-free dataset (bigbio/qpx#299). The option makes that explicit.
+    """
+
+    _XML_WITH_UNASSIGNED = _TMT_CONSENSUSXML.replace(
+        "</consensusElementList>",
+        """</consensusElementList>
+  <UnassignedPeptideIdentification identification_run_ref="PI_0" score_type=""
+    higher_score_better="true" significance_threshold="0" MZ="500.25" RT="200"
+    spectrum_reference="controllerType=0 controllerNumber=1 scan=99">
+    <PeptideHit score="0" sequence="UNASSIGNEDK" charge="2" protein_refs="PH_0">
+      <UserParam type="string" name="target_decoy" value="target"/>
+      <UserParam type="float" name="Posterior Error Probability_score" value="1.0e-03"/>
+    </PeptideHit>
+  </UnassignedPeptideIdentification>""",
+    )
+
+    @staticmethod
+    def _convert(tmp_path, name, *, include, stream):
+        import pyarrow.parquet as pq
+
+        from qpx.converters.openms_consensus import converter as conv
+
+        path = tmp_path / f"{name}.consensusXML"
+        path.write_text(TestSkipUnassignedPsms._XML_WITH_UNASSIGNED)
+        out = tmp_path / f"out_{name}"
+        conv._should_stream = lambda _p, v=stream: v
+        OpenMSConsensusConverter().convert(
+            str(path),
+            str(out),
+            output_prefix="X",
+            structures=("feature", "psm", "pg"),
+            project_accession="X",
+            include_unassigned_psms=include,
+        )
+        return pq.read_table(str(out / "X.psm.parquet")).to_pylist()
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_default_keeps_unassigned(self, tmp_path, stream):
+        rows = self._convert(tmp_path, f"keep_{stream}", include=True, stream=stream)
+        seqs = {r["sequence"] for r in rows}
+        assert "UNASSIGNEDK" in seqs, "default must preserve existing output"
+        assert any(r["feature_id"] is None for r in rows)
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_option_drops_unassigned_on_both_paths(self, tmp_path, stream):
+        rows = self._convert(tmp_path, f"drop_{stream}", include=False, stream=stream)
+        seqs = {r["sequence"] for r in rows}
+        assert "UNASSIGNEDK" not in seqs, "unassigned PSM was still written"
+        assert rows, "assigned PSMs must survive"
+        assert all(r["feature_id"] is not None for r in rows), "every remaining PSM links to a feature"
+
+    def test_protein_inference_is_unaffected(self, tmp_path):
+        """Dropping PSM rows must not change the protein groups."""
+        import pyarrow.parquet as pq
+
+        from qpx.converters.openms_consensus import converter as conv
+
+        counts = []
+        for include in (True, False):
+            path = tmp_path / f"pg_{include}.consensusXML"
+            path.write_text(self._XML_WITH_UNASSIGNED)
+            out = tmp_path / f"pgout_{include}"
+            conv._should_stream = lambda _p: False
+            OpenMSConsensusConverter().convert(
+                str(path),
+                str(out),
+                output_prefix="X",
+                structures=("feature", "psm", "pg"),
+                project_accession="X",
+                include_unassigned_psms=include,
+            )
+            counts.append(pq.read_table(str(out / "X.pg.parquet")).num_rows)
+        assert counts[0] == counts[1], "pg output changed when only PSM rows were filtered"
