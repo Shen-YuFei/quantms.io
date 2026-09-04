@@ -531,6 +531,38 @@ def _write_multi_reference_consensusxml(path):
     path.write_text(_TMT_CONSENSUSXML.replace("\n    </consensusElement>", f"{second_pid}\n    </consensusElement>"))
 
 
+def _write_multirun_confidence_consensusxml(path):
+    """Write one ConsensusFeature with a different confidence in each run."""
+    xml = _TMT_CONSENSUSXML.replace(
+        'name="run_01.mzML" unique_id="2" label="tmt6plex_127"',
+        'name="run_02.mzML" unique_id="2" label="label-free"',
+    ).replace('label="tmt6plex_126"', 'label="label-free"')
+    xml = xml.replace(
+        'PeptideIdentification identification_run_ref="PI_0" score_type=""',
+        'PeptideIdentification identification_run_ref="PI_0" score_type="q-value"',
+        1,
+    ).replace(
+        '<PeptideHit score="0" sequence="PEPTIDEK"',
+        '<PeptideHit score="1.0e-03" sequence="PEPTIDEK"',
+        1,
+    )
+    first_pid_end = """        </PeptideHit>
+      </PeptideIdentification>"""
+    pids = """        </PeptideHit>
+        <UserParam type="int" name="map_index" value="0"/>
+      </PeptideIdentification>
+      <PeptideIdentification identification_run_ref="PI_0" score_type="q-value"
+        higher_score_better="false" significance_threshold="0" MZ="450.26" RT="100"
+        spectrum_reference="controllerType=0 controllerNumber=1 scan=43">
+        <PeptideHit score="2.0e-02" sequence="PEPTIDEK" charge="2" protein_refs="PH_0">
+          <UserParam type="string" name="target_decoy" value="target"/>
+          <UserParam type="float" name="Posterior Error Probability_score" value="2.0e-02"/>
+        </PeptideHit>
+        <UserParam type="int" name="map_index" value="1"/>
+      </PeptideIdentification>"""
+    path.write_text(xml.replace(first_pid_end, pids, 1))
+
+
 def test_streaming_matches_pyopenms(tmp_path):
     """The low-memory streaming reader produces the same parquet as pyopenms."""
     import json
@@ -959,6 +991,28 @@ def test_openms_consensus_identity_retains_all_spectrum_references(tmp_path, str
     assert table.column("scan").to_pylist() == [[42, 43]]
     assert table.column("consensus_rt").to_pylist() == pytest.approx([100.123456])
     assert table.schema.metadata[b"identity_composite"] == (b"peptidoform,charge,run_file_name,rt,scan,observed_mz,consensus_rt")
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_openms_consensus_confidence_is_attributed_per_run(tmp_path, streaming):
+    """Each run receives confidence from its own PeptideIdentification."""
+    import pyarrow.parquet as pq
+
+    cx = tmp_path / "multirun-confidence.consensusXML"
+    _write_multirun_confidence_consensusxml(cx)
+    written = OpenMSConsensusConverter().convert(
+        str(cx),
+        str(tmp_path / ("stream" if streaming else "mem")),
+        output_prefix="t",
+        structures=("feature",),
+        streaming=streaming,
+    )
+
+    records = {record["run_file_name"]: record for record in pq.read_table(written["feature"]).to_pylist()}
+    assert records["run_01"]["posterior_error_probability"] == pytest.approx(0.001)
+    assert records["run_01"]["peptide_qvalue"] == pytest.approx(0.001)
+    assert records["run_02"]["posterior_error_probability"] == pytest.approx(0.02)
+    assert records["run_02"]["peptide_qvalue"] == pytest.approx(0.02)
 
 
 class _ScoredHit:

@@ -299,6 +299,20 @@ def _pid_scans(pid) -> list[int]:
     return _scan_of(ref)
 
 
+def _pid_run(pid, map_info: dict[int, tuple[str, str]], cf_runs: Optional[set[str]] = None) -> str | None:
+    """Resolve one identification to the run that produced it."""
+    pid_run = None
+    if pid.metaValueExists("map_index"):
+        pid_run = map_info.get(int(pid.getMetaValue("map_index")), (None, None))[0]
+    if pid_run is None and cf_runs and len(cf_runs) == 1:
+        pid_run = next(iter(cf_runs))
+    if pid_run is None:
+        runs_in_map = {info[0] for info in map_info.values()}
+        if len(runs_in_map) == 1:
+            pid_run = next(iter(runs_in_map))
+    return pid_run
+
+
 def _scan_by_run(pids, map_info: dict[int, tuple[str, str]], cf_runs: Optional[set[str]] = None) -> dict[str, list[int]]:
     """Attribute each identification's scan(s) to its own run.
 
@@ -310,23 +324,34 @@ def _scan_by_run(pids, map_info: dict[int, tuple[str, str]], cf_runs: Optional[s
     caller's ``cf_runs`` (the feature's positive-intensity element runs) then
     attributes the scan — each such feature lives in a single run.
     """
-    runs_in_map = {info[0] for info in map_info.values()}
-    sole_run = next(iter(runs_in_map)) if len(runs_in_map) == 1 else None
     scan_by_run: dict[str, list[int]] = {}
     for pid in pids:
         scans = _pid_scans(pid)
         if not scans:
             continue
-        pid_run = None
-        if pid.metaValueExists("map_index"):
-            pid_run = map_info.get(int(pid.getMetaValue("map_index")), (None, None))[0]
-        if pid_run is None and cf_runs and len(cf_runs) == 1:
-            pid_run = next(iter(cf_runs))
-        pid_run = pid_run or sole_run
+        pid_run = _pid_run(pid, map_info, cf_runs)
         if pid_run is not None:
             run_scans = scan_by_run.setdefault(pid_run, [])
             run_scans.extend(scan for scan in scans if scan not in run_scans)
     return scan_by_run
+
+
+def _confidence_by_run(
+    pids,
+    map_info: dict[int, tuple[str, str]],
+    cf_runs: Optional[set[str]] = None,
+) -> dict[str, tuple[float | None, float | None]]:
+    """Return the first identification's PEP and q-value for each run."""
+    confidence_by_run: dict[str, tuple[float | None, float | None]] = {}
+    for pid in pids:
+        hits = pid.getHits()
+        pid_run = _pid_run(pid, map_info, cf_runs)
+        if not hits or pid_run is None or pid_run in confidence_by_run:
+            continue
+        hit = hits[0]
+        score_type = str(pid.getScoreType() or "")
+        confidence_by_run[pid_run] = (pep_of(hit), qvalue_of(hit, score_type))
+    return confidence_by_run
 
 
 def _group_subfeatures_by_run(cf, map_info: dict[int, tuple[str, str]]) -> dict[str, dict]:
@@ -388,21 +413,16 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     pids = cf.getPeptideIdentifications()
     if not pids or not pids[0].getHits():
         return []
-    score_type = str(pids[0].getScoreType() or "")
     by_run = _group_subfeatures_by_run(cf, map_info)
     cf_runs = set(by_run)
     scan_by_run = _scan_by_run(pids, map_info, cf_runs=cf_runs)
+    confidence_by_run = _confidence_by_run(pids, map_info, cf_runs=cf_runs)
     hit = pids[0].getHits()[0]
     seq_obj = hit.getSequence()
     peptidoform = to_proforma(seq_obj)
     sequence = seq_obj.toUnmodifiedString()
     additional_scores, site_scores = localization_scores(hit)
     modifications = to_modifications(seq_obj, site_scores)
-    # Confidence carried by the identification behind this consensus feature. Both
-    # are nullable in the schema, but leaving them permanently null makes an
-    # FDR-filtered table indistinguishable from an unfiltered one (bigbio/qpx#284).
-    posterior_error_probability = pep_of(hit)
-    peptide_qvalue = qvalue_of(hit, score_type)
     charge = int(cf.getCharge() or hit.getCharge() or 0)
     is_decoy = False
     if hit.metaValueExists("target_decoy"):
@@ -430,8 +450,9 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     error_ppm = mass_error_ppm(calculated_mz, observed_mz)
 
     records: list[dict] = []
-    for run, entry in _group_subfeatures_by_run(cf, map_info).items():
+    for run, entry in by_run.items():
         intensities = [{"label": label, "intensity": inten} for label, inten in entry["labels"].items()]
+        posterior_error_probability, peptide_qvalue = confidence_by_run.get(run, (None, None))
         records.append(
             {
                 "sequence": sequence,
