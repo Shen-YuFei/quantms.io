@@ -100,21 +100,21 @@ def _should_stream(path: str) -> bool:
         return False
 
 
-def _cf_feature_psm_records(cf, map_info, group_map, resolve_run, seen, *, want_feature, want_psm):
+def _cf_feature_psm_records(cf, map_info, group_map, resolve_run, seen, *, want_feature, want_psm, enzyme=None):
     """Feature + PSM records for one consensus feature, cross-linked when both views
     are emitted. Shared by the streaming and in-memory paths so their output matches.
     """
     from qpx.converters.openms_consensus.feature_adapter import feature_records_for_cf
     from qpx.converters.openms_consensus.psm_adapter import _cf_element_runs, psm_records_for_pid
 
-    cf_feats = feature_records_for_cf(cf, map_info, group_map) if want_feature else []
+    cf_feats = feature_records_for_cf(cf, map_info, group_map, enzyme=enzyme) if want_feature else []
     cf_psms: list[dict] = []
     if want_psm:
         # Multi-run isobaric PIDs carry a local id_merge_index; the feature's
         # element runs disambiguate which run they belong to.
         cf_runs = _cf_element_runs(cf, map_info)
         for pid in cf.getPeptideIdentifications():
-            cf_psms.extend(psm_records_for_pid(pid, resolve_run, seen, cf_runs=cf_runs))
+            cf_psms.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme, cf_runs=cf_runs))
     # Stamp psm.feature_id only when both views are emitted (the FK references a
     # feature row written in this dataset). feature.psm_ids is the computed inverse.
     if want_feature and want_psm:
@@ -147,6 +147,7 @@ def _stream_feature_psm(
     seen,
     batch,
     include_unassigned_psms=False,
+    enzyme=None,
 ):
     """One ordered element/unassigned pass: write feature/psm in batches and
     accumulate the pg maps in place (the streaming path's inner loop)."""
@@ -162,7 +163,14 @@ def _stream_feature_psm(
     for kind, obj in cm.iter_all():
         if kind == "element":
             cf_feats, cf_psms = _cf_feature_psm_records(
-                obj, map_info, group_map, resolve_run, seen, want_feature=fw is not None, want_psm=pw is not None
+                obj,
+                map_info,
+                group_map,
+                resolve_run,
+                seen,
+                want_feature=fw is not None,
+                want_psm=pw is not None,
+                enzyme=enzyme,
             )
             feat_buf.extend(cf_feats)
             psm_buf.extend(cf_psms)
@@ -172,7 +180,7 @@ def _stream_feature_psm(
         else:  # unassigned peptide identification
             if pw is not None and include_unassigned_psms:
                 # Unassigned PSMs map to no feature -> feature_id stays null.
-                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen))
+                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen, enzyme=enzyme))
             if maps is not None:
                 # Protein inference always sees every identification, whether or
                 # not the PSM rows are emitted: dropping evidence would change the
@@ -211,7 +219,7 @@ def _convert_streaming(
     from collections import defaultdict
     from contextlib import ExitStack
 
-    from qpx.converters.openms_consensus.feature_adapter import _run_stem, feature_map_info
+    from qpx.converters.openms_consensus.feature_adapter import _run_stem, feature_map_info, resolve_enzyme
     from qpx.converters.openms_consensus.pg_adapter import (
         _ProteinMaps,
         accession_to_group,
@@ -269,6 +277,7 @@ def _convert_streaming(
             seen=seen,
             batch=100_000,
             include_unassigned_psms=include_unassigned_psms,
+            enzyme=resolve_enzyme(cm, sdrf_path),
         )
         if fw is not None:
             written["feature"] = out / f"{output_prefix}.feature.parquet"
@@ -545,7 +554,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         include_unassigned_psms=False,
     ) -> dict:
         """feature/psm/pg via the in-memory pyopenms map (loaded once, iterated cheaply)."""
-        from qpx.converters.openms_consensus.feature_adapter import feature_map_info
+        from qpx.converters.openms_consensus.feature_adapter import feature_map_info, resolve_enzyme
         from qpx.converters.openms_consensus.psm_adapter import _run_resolver, psm_records_for_pid
 
         cm = load_consensus_map(consensusxml_path)
@@ -564,17 +573,25 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
             group_map = accession_to_group(cm) if want_feature else None
             resolve_run = _run_resolver(cm) if want_psm else None
             seen: set = set()
+            enzyme = resolve_enzyme(cm, sdrf_path)
             feat_recs: list[dict] = []
             psm_recs: list[dict] = []
             for cf in cm:
                 cf_feats, cf_psms = _cf_feature_psm_records(
-                    cf, map_info, group_map, resolve_run, seen, want_feature=want_feature, want_psm=want_psm
+                    cf,
+                    map_info,
+                    group_map,
+                    resolve_run,
+                    seen,
+                    want_feature=want_feature,
+                    want_psm=want_psm,
+                    enzyme=enzyme,
                 )
                 feat_recs.extend(cf_feats)
                 psm_recs.extend(cf_psms)
             if want_psm and include_unassigned_psms:
                 for pid in cm.getUnassignedPeptideIdentifications():
-                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen))
+                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme))
             if want_feature:
                 written["feature"] = _write_view(
                     FeatureWriter,
