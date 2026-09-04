@@ -217,3 +217,23 @@ class TestEnzymeResolution:
         from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
 
         assert resolve_enzyme(self._Map("unknown_enzyme"), None) is None
+
+
+def test_public_records_api_reports_missed_cleavages(tmp_path):
+    """The library entry point must not lag the CLI (CodeRabbit, PR #296).
+
+    consensus_features_to_records is exported in __all__, so it is a supported
+    way to get feature records; it resolved no enzyme, so callers got a null
+    missed_cleavages while the same data through the converter got a value.
+    """
+    from qpx.converters.openms_consensus import consensus_features_to_records
+
+    path = tmp_path / "in.consensusXML"
+    path.write_text(_TMT_CONSENSUSXML.replace('enzyme="unknown_enzyme"', 'enzyme="Trypsin"'))
+    records = consensus_features_to_records(str(path))
+    assert records
+    assert all(r["missed_cleavages"] == 0 for r in records), "PEPTIDEK has no internal K/R"
+
+    unknown = tmp_path / "unknown.consensusXML"
+    unknown.write_text(_TMT_CONSENSUSXML)
+    assert all(r["missed_cleavages"] is None for r in consensus_features_to_records(str(unknown)))
