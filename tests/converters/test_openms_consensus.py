@@ -959,3 +959,90 @@ def test_openms_consensus_identity_retains_all_spectrum_references(tmp_path, str
     assert table.column("scan").to_pylist() == [[42, 43]]
     assert table.column("consensus_rt").to_pylist() == pytest.approx([100.123456])
     assert table.schema.metadata[b"identity_composite"] == (b"peptidoform,charge,run_file_name,rt,scan,observed_mz,consensus_rt")
+
+
+class _ScoredHit:
+    """Minimal PeptideHit stand-in carrying a score and optional PEP meta value."""
+
+    def __init__(self, score=None, meta=None):
+        self._score = score
+        self._meta = meta or {}
+
+    def getScore(self):
+        return self._score
+
+    def metaValueExists(self, key):
+        return key in self._meta
+
+    def getMetaValue(self, key):
+        return self._meta[key]
+
+
+def test_pep_of_reads_openms_meta_keys():
+    """PEP is read from whichever meta key OpenMS used."""
+    from qpx.converters.openms_consensus.feature_adapter import pep_of
+
+    assert pep_of(_ScoredHit(meta={"Posterior Error Probability_score": 0.004})) == 0.004
+    assert pep_of(_ScoredHit(meta={"PEP": 0.02})) == 0.02
+    assert pep_of(_ScoredHit(meta={"pep": 0.03})) == 0.03
+    assert pep_of(_ScoredHit()) is None
+
+
+def test_qvalue_of_only_accepts_qvalue_score_types():
+    """A raw search score must never be written to peptide_qvalue.
+
+    Once it is in the column a consumer cannot tell an FDR from a Percolator SVM
+    score, so anything that is not declared a q-value has to stay null
+    (bigbio/qpx#284).
+    """
+    from qpx.converters.openms_consensus.feature_adapter import qvalue_of
+
+    hit = _ScoredHit(score=0.008)
+    for score_type in ("q-value", "Q-Value", "qvalue", "FDR"):
+        assert qvalue_of(hit, score_type) == 0.008, score_type
+    for score_type in ("Posterior Error Probability", "expect", "svm_score", "", None):
+        assert qvalue_of(hit, score_type) is None, score_type
+
+
+def test_qvalue_of_returns_none_without_a_score():
+    from qpx.converters.openms_consensus.feature_adapter import qvalue_of
+
+    assert qvalue_of(_ScoredHit(score=None), "q-value") is None
+
+
+def test_mass_error_ppm_is_computed_from_the_two_mz_values():
+    """mass_error_ppm was null in every artifact although both inputs were present."""
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.5589294433594, 456.5606994628906) == pytest.approx(3.876, abs=1e-2)
+    assert mass_error_ppm(500.0, 499.995) == pytest.approx(-10.0, abs=1e-6)
+
+
+def test_mass_error_ppm_is_none_when_not_measurable():
+    """An echoed theoretical m/z must not be reported as 0.0 ppm.
+
+    A producer with no measured m/z that returns the calculated value would
+    otherwise yield a constant 0.0, which reads as perfect mass accuracy instead
+    of as missing data.
+    """
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.55, 456.55) is None
+    assert mass_error_ppm(456.55, None) is None
+    assert mass_error_ppm(None, 456.55) is None
+    assert mass_error_ppm(0.0, 456.55) is None
+
+
+def test_mass_error_ppm_rejects_non_positive_mz():
+    """A zero m/z is missing data, not a measurement.
+
+    feature_records_for_cf substitutes 0.0 when the ConsensusFeature carries no
+    m/z, so without this guard an unmeasured feature would report roughly
+    -1e6 ppm instead of null.
+    """
+    from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
+
+    assert mass_error_ppm(456.55, 0.0) is None
+    assert mass_error_ppm(0.0, 456.55) is None
+    assert mass_error_ppm(456.55, -1.0) is None
+    assert mass_error_ppm(-456.55, 456.55) is None

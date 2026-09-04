@@ -38,6 +38,7 @@ The Feature view captures quantified peptide features with intensity data. Featu
 | `peptidoform` | Modified sequence | Modified.Sequence | Modified Peptide | PeptideSequence (ProForma-normalized) |
 | `charge` | Charge | Precursor.Charge | --- | Charge / PrecursorCharge |
 | `is_decoy` | Reverse | --- | --- | ProteinName prefix |
+| `peptide_qvalue` | --- | Q.Value | --- | --- |
 | `calculated_mz` | --- | --- | Calculated M/Z | --- |
 | `observed_mz` | m/z | --- | --- | --- |
 | `rt` | Retention time | RT | --- | RetentionTime |

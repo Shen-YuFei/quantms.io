@@ -24,6 +24,12 @@ from qpx.converters.openms_consensus.feature_adapter import (
     to_modifications,
     to_proforma,
 )
+from qpx.converters.openms_consensus.feature_adapter import (
+    mass_error_ppm as _mass_error_ppm,
+)
+from qpx.converters.openms_consensus.feature_adapter import (
+    pep_of as _pep_of,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -34,8 +40,6 @@ _SCAN_RE = re.compile(r"(?:scan|index|spectrum)=(\d+)", re.IGNORECASE)
 _CYCLE_RE = re.compile(r"cycle=(\d+)", re.IGNORECASE)
 # scan is a list<int32>; keep any surrogate within the signed 32-bit range.
 _INT32_MASK = 0x7FFFFFFF
-
-_PEP_META_KEYS = ("Posterior Error Probability_score", "PEP", "pep")
 
 
 def _surrogate_scan(spectrum_ref: str) -> int:
@@ -70,14 +74,6 @@ def _scan_of(spectrum_ref: str) -> list[int]:
     if cycles:
         return cycles
     return [_surrogate_scan(ref)]
-
-
-def _pep_of(hit) -> float | None:
-    """Posterior error probability for a PeptideHit, or ``None`` when absent."""
-    for mv in _PEP_META_KEYS:
-        if hit.metaValueExists(mv):
-            return float(hit.getMetaValue(mv))
-    return None
 
 
 def _protein_accessions(hits) -> list[str] | None:
@@ -306,6 +302,7 @@ def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None) -> lis
                 "rt": float(pid.getRT()) if pid.getRT() else None,
                 "calculated_mz": calc_mz,
                 "observed_mz": obs_mz,
+                "mass_error_ppm": _mass_error_ppm(calc_mz, obs_mz),
                 "posterior_error_probability": pep,
                 "additional_scores": additional_scores or None,
                 "is_decoy": is_decoy,
