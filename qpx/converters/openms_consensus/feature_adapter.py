@@ -450,10 +450,14 @@ def _group_subfeatures_by_run(cf, map_info: dict[int, tuple[str, str]]) -> dict[
     return by_run
 
 
-def consensus_features_to_records(consensusxml_path: str | None = None, cm=None, group_map=None) -> list[dict]:
+def consensus_features_to_records(consensusxml_path: str | None = None, cm=None, group_map=None, sdrf_path=None) -> list[dict]:
     """Return QPX feature record dicts extracted from a consensusXML.
 
     Pass either ``consensusxml_path`` (loaded here) or an already-loaded ``cm``.
+    ``sdrf_path`` is optional and only supplies the digestion enzyme for
+    ``missed_cleavages``; without it the enzyme falls back to the consensusXML
+    ``SearchParameters``.
+
     ``group_map`` (accession -> full protein-group membership, from
     ``pg_adapter.accession_to_group``) makes each feature stamp BOTH the same
     group leader the pg view uses as ``anchor_protein`` AND the full
@@ -463,9 +467,13 @@ def consensus_features_to_records(consensusxml_path: str | None = None, cm=None,
     """
     cm = cm if cm is not None else load_consensus_map(consensusxml_path)
     map_info = feature_map_info(cm)
+    # Resolve the enzyme once, as the converter does, so this public entry point
+    # reports missed_cleavages too. Without it a caller of the library API got a
+    # null column while the same data through the CLI got a value.
+    enzyme = resolve_enzyme(cm, sdrf_path)
     records: list[dict] = []
     for cf in cm:
-        records.extend(feature_records_for_cf(cf, map_info, group_map))
+        records.extend(feature_records_for_cf(cf, map_info, group_map, enzyme=enzyme))
     return records
 
 
