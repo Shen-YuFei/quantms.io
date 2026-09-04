@@ -56,12 +56,11 @@ class TestSkipUnassignedPsms:
         return pq.read_table(str(out / "X.psm.parquet")).to_pylist()
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
-    def test_default_keeps_unassigned_and_marks_them(self, tmp_path, stream):
-        """Unassigned PSMs are kept by default and are self-identifying.
+    def test_default_keeps_psms_with_no_quantified_feature(self, tmp_path, stream):
+        """They are identifications without quantification, so the artifact keeps them.
 
-        They are real identifications with no quantified feature, so the artifact
-        keeps them; the cv_param means a consumer can select them explicitly
-        rather than inferring intent from a null feature_id.
+        A null ``feature_id`` is the marker; ``PSM.quantified()`` /
+        ``PSM.unquantified()`` are the supported way to split on it.
         """
         import pyarrow.parquet as pq
 
@@ -79,15 +78,13 @@ class TestSkipUnassignedPsms:
             project_accession="X",
         )
         rows = pq.read_table(str(out / "X.psm.parquet")).to_pylist()
-        unassigned = [r for r in rows if r["sequence"] == "UNASSIGNEDK"]
-        assert unassigned, "an unassigned PSM must be kept by default"
-        for record in unassigned:
-            assert record["feature_id"] is None
-            assert record["cv_params"] == [{"cv_name": "psm_assignment", "cv_value": "unassigned"}]
-        for record in (r for r in rows if r["sequence"] != "UNASSIGNEDK"):
-            assert record["feature_id"] is not None, "assigned PSMs still link to a feature"
-            marks = [p for p in (record["cv_params"] or []) if p["cv_name"] == "psm_assignment"]
-            assert not marks, "assigned PSMs must not carry the unassigned marker"
+        unquantified = [r for r in rows if r["sequence"] == "UNASSIGNEDK"]
+        assert unquantified, "a PSM with no quantified feature must be kept by default"
+        assert all(r["feature_id"] is None for r in unquantified)
+        assert all(r["sequence"] and r["posterior_error_probability"] is not None for r in unquantified), (
+            "they are identifications, so they carry a sequence and a score"
+        )
+        assert all(r["feature_id"] is not None for r in rows if r["sequence"] != "UNASSIGNEDK")
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
     def test_opt_out_drops_unassigned(self, tmp_path, stream):

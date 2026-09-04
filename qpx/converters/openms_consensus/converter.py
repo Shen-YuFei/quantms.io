@@ -180,7 +180,7 @@ def _stream_feature_psm(
         else:  # unassigned peptide identification
             if pw is not None and include_unassigned_psms:
                 # Unassigned PSMs map to no feature -> feature_id stays null.
-                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen, enzyme=enzyme, assigned=False))
+                psm_buf.extend(psm_records_for_pid(obj, resolve_run, seen, enzyme=enzyme))
             if maps is not None:
                 # Protein inference always sees every identification, whether or
                 # not the PSM rows are emitted: dropping evidence would change the
@@ -396,9 +396,9 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         label-free dataset they are 41% of PSM rows, their median PEP is *better*
         than the assigned ones, and 15% of their peptidoforms appear nowhere else
         in the file. Dropping them would silently cost identification evidence.
-        They are marked with a ``psm_assignment=unassigned`` cv_param so a
-        consumer can select or exclude them without inferring it from a null
-        ``feature_id``.
+        A null ``feature_id`` is what marks them, and it means the PSM is **not
+        quantified** — not that it is unidentified. :meth:`PSM.quantified` and
+        :meth:`PSM.unquantified` expose that split directly.
 
         Pass ``False`` for a quantified-only PSM view, where every row joins to a
         feature. Note that features themselves are always identified — a
@@ -600,7 +600,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
                 psm_recs.extend(cf_psms)
             if want_psm and include_unassigned_psms:
                 for pid in cm.getUnassignedPeptideIdentifications():
-                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme, assigned=False))
+                    psm_recs.extend(psm_records_for_pid(pid, resolve_run, seen, enzyme=enzyme))
             if want_feature:
                 written["feature"] = _write_view(
                     FeatureWriter,
