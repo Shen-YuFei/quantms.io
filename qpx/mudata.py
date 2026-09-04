@@ -90,11 +90,13 @@ def _dictionary_positions(column, index: pd.Index) -> np.ndarray:
     encoded = pc.dictionary_encode(column.combine_chunks())
     dictionary_positions = index.get_indexer(encoded.dictionary.to_pylist())
     codes = encoded.indices.to_numpy(zero_copy_only=False)
-    positions = dictionary_positions[codes]
-    # A null key encodes to a null index; treat it as unmatched rather than
-    # letting the masked-array fill value point at a real row.
-    if encoded.indices.null_count:
-        positions = np.where(pd.isna(codes), -1, positions)
+    if not encoded.indices.null_count:
+        return dictionary_positions[codes]
+
+    valid = ~pd.isna(codes)
+    safe_codes = np.where(valid, codes, 0).astype(np.intp, copy=False)
+    positions = np.full(len(codes), -1, dtype=np.intp)
+    positions[valid] = dictionary_positions[safe_codes[valid]]
     return positions
 
 

@@ -627,6 +627,28 @@ class TestArrowPivotEquivalence:
         assert (actual != expected).nnz == 0
         assert actual.sum() == pytest.approx(110.0)  # 40.0 from the dropped r3 row is gone
 
+    def test_null_keys_are_dropped_before_dictionary_lookup(self):
+        """A null Arrow dictionary code is unmatched, not a NumPy index."""
+        import pyarrow as pa
+
+        from qpx.mudata import _pivot_arrow_to_sparse, _pivot_to_sparse
+
+        df = pd.DataFrame(
+            {
+                "observation_id": ["r1|L", None],
+                "precursor_id": ["PEP|2", "PEP|2"],
+                "intensity": [10.0, 20.0],
+            }
+        )
+        rows = pd.Index(["r1|L"], name="observation_id")
+        cols = pd.Index(["PEP|2"], name="precursor_id")
+
+        expected = _pivot_to_sparse(df, "observation_id", "precursor_id", "intensity", rows, cols)
+        actual = _pivot_arrow_to_sparse(pa.Table.from_pandas(df), "observation_id", "precursor_id", "intensity", rows, cols)
+
+        assert (actual != expected).nnz == 0
+        assert actual.sum() == pytest.approx(10.0)
+
     def test_sorted_unique_matches_pandas(self):
         import pyarrow as pa
 
