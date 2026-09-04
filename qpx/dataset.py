@@ -117,6 +117,9 @@ class Dataset:
                     engine=self._engine,
                     table_name=name,
                     file_path=f"{self.path}/{name}",
+                    # The glob is what was actually registered; a consumer
+                    # re-registering from the display path would read nothing.
+                    file_paths=[s3_glob],
                 )
             except QpxVersionError as exc:
                 # One incompatible/old structure file must not abort the whole
@@ -173,6 +176,7 @@ class Dataset:
                 engine=self._engine,
                 table_name=name,
                 file_path=matches[0],
+                file_paths=matches,
             )
         elif self._file_prefix is None:
             # Check for Hive-partitioned directory

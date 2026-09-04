@@ -25,11 +25,29 @@ class BaseStructure:
 
     _schema_class = None  # Override in subclasses (e.g., FeatureSchema)
 
-    def __init__(self, engine: DuckDBEngine, table_name: str, file_path: Path):
+    def __init__(self, engine: DuckDBEngine, table_name: str, file_path: Path, file_paths=None):
         self._engine = engine
         self._table_name = table_name
         self._file_path = file_path
+        # Every file backing this structure. A sharded structure has more than
+        # one, and ``_file_path`` names only the first (kept for provenance), so
+        # anything that re-registers the data from a path MUST use this list or
+        # it silently reads a subset (bigbio/qpx#286). Defaults to the single
+        # file so producers that pass only ``file_path`` stay correct.
+        # Keep locators exactly as given. Path() would rewrite an "s3://bucket/x"
+        # URI to "s3:/bucket/x" and it would no longer resolve.
+        self._file_paths = list(file_paths) if file_paths else [file_path]
         self._query = LazyQuery(engine, table_name)
+
+    @property
+    def file_paths(self) -> list:
+        """Every file backing this structure, in registration order.
+
+        A sharded structure has more than one; ``_file_path`` names only the
+        first. Anything re-registering the data from a path must use this, or it
+        silently reads a subset (bigbio/qpx#286).
+        """
+        return list(self._file_paths)
 
     @classmethod
     def from_file(cls, path: str | Path, **engine_kwargs) -> BaseStructure:
@@ -137,6 +155,10 @@ class BaseStructure:
         clone._engine = self._engine
         clone._table_name = self._table_name
         clone._file_path = self._file_path
+        # Carry the shard list too: a clone that lost it would silently fall back
+        # to the single _file_path and re-introduce bigbio/qpx#286 for anything
+        # registering data from a cloned structure.
+        clone._file_paths = self._file_paths
         clone._query = new_query
         return clone
 
