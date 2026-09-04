@@ -34,11 +34,13 @@ class BaseStructure:
         # anything that re-registers the data from a path MUST use this list or
         # it silently reads a subset (bigbio/qpx#286). Defaults to the single
         # file so producers that pass only ``file_path`` stay correct.
-        self._file_paths = [Path(p) for p in file_paths] if file_paths else [file_path]
+        # Keep locators exactly as given. Path() would rewrite an "s3://bucket/x"
+        # URI to "s3:/bucket/x" and it would no longer resolve.
+        self._file_paths = list(file_paths) if file_paths else [file_path]
         self._query = LazyQuery(engine, table_name)
 
     @property
-    def file_paths(self) -> list[Path]:
+    def file_paths(self) -> list:
         """Every file backing this structure, in registration order.
 
         A sharded structure has more than one; ``_file_path`` names only the

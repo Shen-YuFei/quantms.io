@@ -54,7 +54,13 @@ class DatasetCollection:
                     # (bigbio/qpx#286). ``_file_paths`` falls back to the single
                     # file for non-sharded structures.
                     file_paths = struct.file_paths
-                    if Path(file_paths[0]).is_dir():
+                    first = str(file_paths[0])
+                    if first.startswith("s3://"):
+                        # S3 locators are globs, not filesystem paths: hand them
+                        # to the S3 registration so the collection reads what the
+                        # dataset reads.
+                        self._engine.register_s3_parquet(indexed_name, first)
+                    elif Path(first).is_dir():
                         # Hive-partitioned structures are a single directory.
                         self._engine.register_partitioned_parquet(indexed_name, file_paths[0])
                     else:

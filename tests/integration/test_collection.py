@@ -199,3 +199,18 @@ class TestShardedCollection:
         clone = ds.feature.limit(1)
         assert clone._file_paths == ds.feature._file_paths
         ds.close()
+
+    def test_s3_locator_is_not_mangled_by_path(self):
+        """An s3:// URI must survive as a URI, not become 's3:/...'."""
+        from qpx.core.data.base import BaseStructure
+
+        struct = BaseStructure.__new__(BaseStructure)
+        BaseStructure.__init__(
+            struct,
+            engine=None,
+            table_name="feature",
+            file_path="s3://bucket/ds/feature",
+            file_paths=["s3://bucket/ds/*.feature.parquet"],
+        )
+        assert struct.file_paths == ["s3://bucket/ds/*.feature.parquet"]
+        assert str(struct.file_paths[0]).startswith("s3://")
