@@ -270,6 +270,7 @@ class TestAtomicWrites:
             w.write_batch([make_feature_record()])
 
     def test_existing_file_survives_a_failed_write(self, tmp_path):
+        """A failed replacement leaves the existing destination unchanged."""
         path = tmp_path / "x.feature.parquet"
         self._write_one(path)
         good_bytes = path.read_bytes()
@@ -283,6 +284,7 @@ class TestAtomicWrites:
         assert parquet_row_count(str(path)) == 1
 
     def test_no_staging_files_are_left_behind(self, tmp_path):
+        """A failed write removes its temporary staging file."""
         path = tmp_path / "y.feature.parquet"
         self._write_one(path)
         with pytest.raises(RuntimeError):
@@ -294,6 +296,7 @@ class TestAtomicWrites:
         assert leftovers == [], f"staging files left behind: {leftovers}"
 
     def test_successful_write_publishes_to_the_destination(self, tmp_path):
+        """A successful close publishes only the requested destination."""
         path = tmp_path / "z.feature.parquet"
         self._write_one(path)
         assert path.exists()
@@ -301,6 +304,7 @@ class TestAtomicWrites:
         assert [p.name for p in tmp_path.iterdir()] == [path.name]
 
     def test_failed_write_leaves_no_file_when_there_was_none(self, tmp_path):
+        """A failed first write does not publish a partial destination."""
         path = tmp_path / "fresh.feature.parquet"
         with pytest.raises(RuntimeError):
             with FeatureWriter(str(path), batch_size=self.BATCH) as w:
@@ -321,10 +325,8 @@ class TestAtomicWrites:
 
         writer = FeatureWriter(str(path), batch_size=self.BATCH)
         writer.write_batch([make_feature_record()])
-        try:
+        with pytest.raises(ValueError):
             writer.write_batch([{"not": "a valid record"}])
-        except Exception:
-            pass  # the converter swallows it
         writer.close()
 
         assert path.read_bytes() == good_bytes, "a partial file was published after a caught error"
@@ -381,6 +383,8 @@ class TestAtomicWrites:
     def test_two_writers_in_one_process_do_not_share_a_staging_file(self, tmp_path):
         """The staging name must be unique per writer, not per process."""
         path = tmp_path / "shared.feature.parquet"
-        a = FeatureWriter(str(path), batch_size=self.BATCH)
-        b = FeatureWriter(str(path), batch_size=self.BATCH)
-        assert a._staging_path != b._staging_path, "two writers would corrupt each other's staging file"
+        with FeatureWriter(str(path), batch_size=self.BATCH) as first, FeatureWriter(str(path), batch_size=self.BATCH) as second:
+            first.write_batch([make_feature_record(sequence="FIRST", peptidoform="FIRST")])
+            second.write_batch([make_feature_record(sequence="SECOND", peptidoform="SECOND")])
+            staging_files = list(tmp_path.glob(f".{path.name}.*.tmp"))
+            assert len(staging_files) == 2, "two writers share a staging file"

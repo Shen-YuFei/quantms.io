@@ -134,8 +134,8 @@ def _write_plexdia_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
-def converted_output(tmp_path_factory):
+@pytest.fixture(scope="module", name="converted_output")
+def _converted_output(tmp_path_factory):
     """Run DIA-NN conversion once for all tests in this module.
 
     Returns the output directory containing the generated Parquet files.
@@ -175,8 +175,8 @@ def converted_output(tmp_path_factory):
     return output
 
 
-@pytest.fixture(scope="module")
-def feature_table(converted_output):
+@pytest.fixture(scope="module", name="feature_table")
+def _feature_table(converted_output):
     """Read the feature.parquet produced by the converter."""
     path = converted_output / "diann_test.feature.parquet"
     if not path.exists():

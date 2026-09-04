@@ -157,8 +157,6 @@ class TestShardedCollection:
     @staticmethod
     def _shard(dataset_dir, tmp_path, name):
         """Copy a dataset and split its feature file into two shards."""
-        import shutil
-
         import pyarrow.parquet as pq
 
         out = tmp_path / name
@@ -174,6 +172,7 @@ class TestShardedCollection:
         return out, table.num_rows
 
     def test_collection_reads_every_shard(self, dataset_dir, tmp_path):
+        """A collection reads every feature shard registered by its dataset."""
         import qpx
 
         ds_dir, total = self._shard(dataset_dir, tmp_path, "sharded")

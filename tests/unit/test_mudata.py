@@ -597,6 +597,7 @@ class TestArrowPivotEquivalence:
         )
 
     def test_matches_pandas_pivot(self):
+        """The Arrow pivot produces the same sparse matrix as pandas."""
         import pyarrow as pa
 
         from qpx.mudata import _pivot_arrow_to_sparse, _pivot_to_sparse
@@ -650,6 +651,7 @@ class TestArrowPivotEquivalence:
         assert actual.sum() == pytest.approx(10.0)
 
     def test_sorted_unique_matches_pandas(self):
+        """Arrow unique values match pandas sorting and ordering."""
         import pyarrow as pa
 
         from qpx.mudata import _sorted_unique
@@ -660,6 +662,7 @@ class TestArrowPivotEquivalence:
         assert list(_sorted_unique(table, "precursor_id")) == list(expected)
 
     def test_prepare_observations_arrow_matches_pandas(self):
+        """Arrow observation preparation matches the pandas implementation."""
         import pyarrow as pa
 
         from qpx.mudata import _prepare_observations, _prepare_observations_arrow
