@@ -498,27 +498,35 @@ class BaseWriter:
 
     def _close(self, *, validate: bool) -> None:
         """Close the writer, discarding buffered rows after a body error."""
-        if validate and self._buffer:
-            self._write_arrow_batch(self._buffer)
-        self._buffer = []
-        wrote_file = self._writer is not None
-        if self._writer:
-            self._writer.close()
+        completed = False
+        writer = None
+        try:
+            if validate and self._buffer:
+                self._write_arrow_batch(self._buffer)
+            self._buffer = []
+            wrote_file = self._writer is not None
+            writer = self._writer
             self._writer = None
-        if not wrote_file:
-            self._discard_staged()
-            return
-        if not validate:
-            # The body raised: leave whatever was already at the destination
-            # untouched and drop the partial file.
-            self._discard_staged()
-            return
-        # Validate the staged file, then publish it atomically. Validation runs
-        # BEFORE the rename so a file that fails its checks never reaches the
-        # destination.
-        self._validate_identity_uniqueness()
-        self._validate_referential()
-        self._promote_staged()
+            if writer:
+                writer.close()
+                writer = None
+            if not wrote_file or not validate:
+                # The body raised: leave the destination untouched and discard
+                # any partial staging file.
+                self._discard_staged()
+            else:
+                # Validate before the atomic publish so invalid output never
+                # reaches the destination.
+                self._validate_identity_uniqueness()
+                self._validate_referential()
+                self._promote_staged()
+            completed = True
+        finally:
+            if not completed:
+                self._buffer = []
+                self._writer = None
+                writer = None
+                self._discard_staged()
 
     @property
     def _validation_path(self) -> Path:

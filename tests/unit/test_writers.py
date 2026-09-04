@@ -380,6 +380,47 @@ class TestAtomicWrites:
         assert path.read_bytes() == good_bytes, "PgWriter preprocessing failure published a partial file"
         assert [p.name for p in tmp_path.iterdir()] == [path.name]
 
+    def test_final_buffer_failure_discards_staging(self, tmp_path):
+        """A failure while flushing the final buffer leaves no partial file."""
+        path = tmp_path / "final-buffer.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+
+        writer = FeatureWriter(str(path), batch_size=2)
+        writer.write_batch(
+            [
+                make_feature_record(sequence="FIRST", peptidoform="FIRST"),
+                make_feature_record(sequence="SECOND", peptidoform="SECOND"),
+            ]
+        )
+        writer.write_batch([{"not": "a valid record"}])
+
+        with pytest.raises(ValueError):
+            writer.close()
+
+        assert path.read_bytes() == good_bytes
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    @pytest.mark.parametrize("failure_target", ["_validate_identity_uniqueness", "_promote_staged"])
+    def test_finalization_failure_discards_staging(self, tmp_path, monkeypatch, failure_target):
+        """Validation and promotion failures both clean up staged output."""
+        path = tmp_path / "finalization.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+        writer = FeatureWriter(str(path), batch_size=self.BATCH)
+        writer.write_batch([make_feature_record(sequence="PARTIAL", peptidoform="PARTIAL")])
+
+        def fail_finalization():
+            """Simulate a failure after the staged Parquet file is closed."""
+            raise RuntimeError("finalization failed")
+
+        monkeypatch.setattr(writer, failure_target, fail_finalization)
+        with pytest.raises(RuntimeError, match="finalization failed"):
+            writer.close()
+
+        assert path.read_bytes() == good_bytes
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
     def test_two_writers_in_one_process_do_not_share_a_staging_file(self, tmp_path):
         """The staging name must be unique per writer, not per process."""
         path = tmp_path / "shared.feature.parquet"
