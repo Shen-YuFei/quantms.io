@@ -1087,9 +1087,12 @@ class Dataset:
         path = Path(self.path)
         checksums, row_counts, sizes = {}, {}, {}
 
-        # Parquet files
-        for f in sorted(path.glob("*.parquet")):
-            name = f.name
+        # Parquet files. rglob, not glob: Hive-partitioned structures live in
+        # subdirectories (feature/run_file_name=.../part-0.parquet) and a
+        # non-recursive scan silently left them unchecksummed, so the integrity
+        # record claimed to cover data it had never read (bigbio/qpx#287).
+        for f in sorted(path.rglob("*.parquet")):
+            name = f.relative_to(path).as_posix()
             sizes[name] = f.stat().st_size
             sha = hashlib.sha256()
             with open(f, "rb") as fh:
@@ -1102,8 +1105,8 @@ class Dataset:
                 row_counts[name] = -1
 
         # H5AD files (AnnData from downstream tools)
-        for f in sorted(path.glob("*.h5ad")):
-            name = f.name
+        for f in sorted(path.rglob("*.h5ad")):
+            name = f.relative_to(path).as_posix()
             sizes[name] = f.stat().st_size
             sha = hashlib.sha256()
             with open(f, "rb") as fh:
@@ -1162,7 +1165,15 @@ class Dataset:
         for name, expected_sha in stored_checksums.items():
             if name.endswith(dataset_suffix):
                 continue
-            fpath = path / name
+            # Keys are dataset-root-relative POSIX paths. Resolve and confirm the
+            # result stays inside the dataset before reading it, so a crafted or
+            # corrupted key cannot walk outside the directory being verified.
+            fpath = (path / name).resolve()
+            try:
+                fpath.relative_to(path.resolve())
+            except ValueError:
+                errors.append(f"Integrity entry escapes the dataset directory: {name}")
+                continue
             if not fpath.exists():
                 errors.append(f"Missing file: {name}")
                 continue
