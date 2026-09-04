@@ -1018,16 +1018,16 @@ def test_mass_error_ppm_is_computed_from_the_two_mz_values():
     assert mass_error_ppm(500.0, 499.995) == pytest.approx(-10.0, abs=1e-6)
 
 
-def test_mass_error_ppm_is_none_when_not_measurable():
-    """An echoed theoretical m/z must not be reported as 0.0 ppm.
+def test_mass_error_ppm_is_none_only_when_not_measurable():
+    """None means absent or unmeasurable — never a real zero.
 
-    A producer with no measured m/z that returns the calculated value would
-    otherwise yield a constant 0.0, which reads as perfect mass accuracy instead
-    of as missing data.
+    An exact match is a genuine 0.0 ppm here: the OpenMS adapters are the only
+    callers and their observed_mz is a measurement, so suppressing it would throw
+    away a real result.
     """
     from qpx.converters.openms_consensus.feature_adapter import mass_error_ppm
 
-    assert mass_error_ppm(456.55, 456.55) is None
+    assert mass_error_ppm(456.55, 456.55) == 0.0
     assert mass_error_ppm(456.55, None) is None
     assert mass_error_ppm(None, 456.55) is None
     assert mass_error_ppm(0.0, 456.55) is None
@@ -1046,3 +1046,33 @@ def test_mass_error_ppm_rejects_non_positive_mz():
     assert mass_error_ppm(0.0, 456.55) is None
     assert mass_error_ppm(456.55, -1.0) is None
     assert mass_error_ppm(-456.55, 456.55) is None
+
+
+def test_unique_is_unknown_without_a_resolved_group(tmp_path):
+    """No resolved group means unknown, not unique.
+
+    A lone peptide evidence is not proof that the peptide maps to one protein, so
+    an unresolved group must leave `unique` null rather than claiming True.
+    Exercised by passing an empty group_map: anchor_protein still resolves from
+    the peptide evidence, but no membership is known.
+    """
+    from qpx.converters.openms_consensus.feature_adapter import (
+        feature_map_info,
+        feature_records_for_cf,
+        load_consensus_map,
+    )
+
+    path = tmp_path / "in.consensusXML"
+    path.write_text(_TMT_CONSENSUSXML)
+    cm = load_consensus_map(str(path))
+    map_info = feature_map_info(cm)
+    cf = list(cm)[0]
+
+    unresolved = feature_records_for_cf(cf, map_info, group_map={})
+    assert unresolved, "expected at least one feature record"
+    for record in unresolved:
+        assert record["anchor_protein"] == "P12345", "anchor still resolves from peptide evidence"
+        assert record["unique"] is None, "unique must be unknown when no group resolved"
+
+    resolved = feature_records_for_cf(cf, map_info, group_map={"P12345": ["P12345"]})
+    assert all(record["unique"] is True for record in resolved), "a resolved group of one is unique"

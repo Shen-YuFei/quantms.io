@@ -307,3 +307,32 @@ class TestAtomicWrites:
                 w.write_batch([make_feature_record()])
                 raise RuntimeError("boom")
         assert not path.exists(), "a partial file was published for a failed run"
+
+    def test_close_after_a_caught_write_error_does_not_publish(self, tmp_path):
+        """A converter that swallows its own write error must not publish.
+
+        __exit__ discards when it sees an exception, but a caller that catches the
+        error itself and then calls close() normally reached the promote path —
+        publishing the truncated file the staging exists to prevent.
+        """
+        path = tmp_path / "caught.feature.parquet"
+        self._write_one(path)
+        good_bytes = path.read_bytes()
+
+        writer = FeatureWriter(str(path), batch_size=self.BATCH)
+        writer.write_batch([make_feature_record()])
+        try:
+            writer.write_batch([{"not": "a valid record"}])
+        except Exception:
+            pass  # the converter swallows it
+        writer.close()
+
+        assert path.read_bytes() == good_bytes, "a partial file was published after a caught error"
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    def test_two_writers_in_one_process_do_not_share_a_staging_file(self, tmp_path):
+        """The staging name must be unique per writer, not per process."""
+        path = tmp_path / "shared.feature.parquet"
+        a = FeatureWriter(str(path), batch_size=self.BATCH)
+        b = FeatureWriter(str(path), batch_size=self.BATCH)
+        assert a._staging_path != b._staging_path, "two writers would corrupt each other's staging file"
