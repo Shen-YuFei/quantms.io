@@ -1,6 +1,5 @@
 """PSM.quantified() / PSM.unquantified() — the supported split on feature_id."""
 
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest

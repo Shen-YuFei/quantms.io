@@ -120,10 +120,18 @@ Several fields in the PSM view use structures shared across other QPX views:
 
     This is a statement about quantification, not about identification quality.
     Such rows carry a sequence, a score and a spectrum reference like any other
-    PSM; on a representative label-free dataset they are 41% of PSM rows and their
-    median posterior error probability is *better* than that of quantified PSMs.
-    They are written by default because some of their peptidoforms appear nowhere
-    else in the file.
+    PSM, and their median posterior error probability is typically *better* than
+    that of quantified PSMs.
+
+    Most are redundant rather than lost. A producer links one identification to a
+    feature, so when the same precursor is fragmented repeatedly across its
+    elution peak only one PSM attaches to the feature and the rest do not — on a
+    representative label-free dataset 97% of unquantified rows have a quantified
+    counterpart for the same run, sequence and charge. The remainder are
+    identifications whose MS1 signal was too weak or too poorly resolved for a
+    feature to be extracted, which is why they skew towards low-abundance
+    modified peptides and lower charge states. They are written by default so the
+    minority that appear nowhere else are not silently discarded.
 
     Read the split through the API rather than reimplementing the predicate:
 
