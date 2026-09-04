@@ -219,7 +219,7 @@ def _convert_streaming(
     from collections import defaultdict
     from contextlib import ExitStack
 
-    from qpx.converters.openms_consensus.feature_adapter import _run_stem, consensus_enzyme, feature_map_info
+    from qpx.converters.openms_consensus.feature_adapter import _run_stem, feature_map_info, resolve_enzyme
     from qpx.converters.openms_consensus.pg_adapter import (
         _ProteinMaps,
         accession_to_group,
@@ -277,7 +277,7 @@ def _convert_streaming(
             seen=seen,
             batch=100_000,
             include_unassigned_psms=include_unassigned_psms,
-            enzyme=consensus_enzyme(cm),
+            enzyme=resolve_enzyme(cm, sdrf_path),
         )
         if fw is not None:
             written["feature"] = out / f"{output_prefix}.feature.parquet"
@@ -554,7 +554,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         include_unassigned_psms=True,
     ) -> dict:
         """feature/psm/pg via the in-memory pyopenms map (loaded once, iterated cheaply)."""
-        from qpx.converters.openms_consensus.feature_adapter import consensus_enzyme, feature_map_info
+        from qpx.converters.openms_consensus.feature_adapter import feature_map_info, resolve_enzyme
         from qpx.converters.openms_consensus.psm_adapter import _run_resolver, psm_records_for_pid
 
         cm = load_consensus_map(consensusxml_path)
@@ -573,7 +573,7 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
             group_map = accession_to_group(cm) if want_feature else None
             resolve_run = _run_resolver(cm) if want_psm else None
             seen: set = set()
-            enzyme = consensus_enzyme(cm)
+            enzyme = resolve_enzyme(cm, sdrf_path)
             feat_recs: list[dict] = []
             psm_recs: list[dict] = []
             for cf in cm:

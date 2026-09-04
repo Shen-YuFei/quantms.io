@@ -1125,3 +1125,52 @@ class TestMissedCleavages:
         feats, psms = self._features(tmp_path, f"mcnull_{stream}", _TMT_CONSENSUSXML, stream)
         assert feats and all(f["missed_cleavages"] is None for f in feats)
         assert psms and all(p["missed_cleavages"] is None for p in psms)
+
+
+class TestEnzymeResolution:
+    """SDRF first, consensusXML second — and say so when they disagree."""
+
+    class _Map:
+        def __init__(self, enzyme):
+            self._enzyme = enzyme
+
+        def getProteinIdentifications(self):
+            return []
+
+    def _sdrf(self, tmp_path, enzyme):
+        path = tmp_path / "x.sdrf.tsv"
+        path.write_text(f"source name\tcomment[data file]\tcomment[cleavage agent details]\nS1\trun_01.mzML\tNT={enzyme}\n")
+        return path
+
+    def test_sdrf_wins_over_the_consensusxml(self, tmp_path):
+        from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
+
+        assert resolve_enzyme(self._Map("Trypsin"), self._sdrf(tmp_path, "Lys-C")) == "Lys-C"
+
+    def test_falls_back_to_the_consensusxml_without_an_sdrf(self, tmp_path):
+        from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
+
+        assert resolve_enzyme(self._Map("Trypsin"), None) == "Trypsin"
+
+    def test_disagreement_is_reported(self, tmp_path, caplog):
+        import logging
+
+        from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
+
+        with caplog.at_level(logging.WARNING):
+            resolve_enzyme(self._Map("Trypsin"), self._sdrf(tmp_path, "Lys-C"))
+        assert any("enzyme mismatch" in r.message for r in caplog.records)
+
+    def test_agreement_is_quiet(self, tmp_path, caplog):
+        import logging
+
+        from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
+
+        with caplog.at_level(logging.WARNING):
+            assert resolve_enzyme(self._Map("Trypsin"), self._sdrf(tmp_path, "Trypsin")) == "Trypsin"
+        assert not any("enzyme mismatch" in r.message for r in caplog.records)
+
+    def test_no_source_at_all_is_none(self):
+        from qpx.converters.openms_consensus.feature_adapter import resolve_enzyme
+
+        assert resolve_enzyme(self._Map("unknown_enzyme"), None) is None

@@ -11,12 +11,16 @@ the QPX feature schema. Protein-level quantity is not produced here.
 from __future__ import annotations
 
 import ast
+import logging
 import re
 from typing import Optional
 
 from qpx.converters.channel_labels import normalize_label
 from qpx.core.cleavage import count_missed_cleavages
 from qpx.core.files import run_file_stem as _run_stem
+
+# OpenMS isobaric channel labels look like ``tmt6plex_126`` / ``itraq4plex_114``.
+_log = logging.getLogger(__name__)
 
 # OpenMS isobaric channel labels look like ``tmt6plex_126`` / ``itraq4plex_114``.
 _CHANNEL_RE = re.compile(r"(tmt|itraq)\d*plex?_(\d+[NC]?)", re.IGNORECASE)
@@ -47,6 +51,47 @@ def mass_error_ppm(calculated_mz, observed_mz) -> float | None:
     if calculated_mz <= 0 or observed_mz <= 0:
         return None
     return float((observed_mz - calculated_mz) / calculated_mz * 1e6)
+
+
+def sdrf_enzyme(sdrf_path) -> str | None:
+    """First enzyme declared in the SDRF's ``comment[cleavage agent details]``.
+
+    The SDRF is the experiment's declared ground truth and is what the DIA-NN and
+    Spectronaut adapters already use, so preferring it here keeps missed-cleavage
+    counts consistent across converters rather than depending on which producer
+    wrote the file.
+    """
+    if not sdrf_path:
+        return None
+    try:
+        from qpx.core.sdrf import SDRFHandler
+
+        enzymes = SDRFHandler(str(sdrf_path)).get_enzymes()
+        if enzymes:
+            return str(enzymes[0])
+    except (OSError, KeyError, TypeError, ValueError):
+        _log.debug("Could not load enzyme from SDRF %s", sdrf_path)
+    return None
+
+
+def resolve_enzyme(cm, sdrf_path=None) -> str | None:
+    """Enzyme to count missed cleavages against: SDRF first, consensusXML second.
+
+    The SDRF wins because it is the declared experimental design and the other
+    converters already key on it. The consensusXML ``SearchParameters`` is the
+    fallback for a conversion run without an SDRF. A disagreement between the two
+    is a metadata inconsistency worth surfacing — the same treatment
+    :func:`check_channels_vs_sdrf` gives channel mismatches — but it is not fatal.
+    """
+    from_sdrf = sdrf_enzyme(sdrf_path)
+    from_xml = consensus_enzyme(cm)
+    if from_sdrf and from_xml and from_sdrf.strip().lower() != from_xml.strip().lower():
+        _log.warning(
+            "enzyme mismatch: SDRF declares %r, consensusXML SearchParameters says %r; using the SDRF for missed-cleavage counts",
+            from_sdrf,
+            from_xml,
+        )
+    return from_sdrf or from_xml
 
 
 def consensus_enzyme(cm) -> str | None:
