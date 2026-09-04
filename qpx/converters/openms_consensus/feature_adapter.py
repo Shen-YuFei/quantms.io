@@ -15,6 +15,7 @@ import re
 from typing import Optional
 
 from qpx.converters.channel_labels import normalize_label
+from qpx.core.cleavage import count_missed_cleavages
 from qpx.core.files import run_file_stem as _run_stem
 
 # OpenMS isobaric channel labels look like ``tmt6plex_126`` / ``itraq4plex_114``.
@@ -46,6 +47,36 @@ def mass_error_ppm(calculated_mz, observed_mz) -> float | None:
     if calculated_mz <= 0 or observed_mz <= 0:
         return None
     return float((observed_mz - calculated_mz) / calculated_mz * 1e6)
+
+
+def consensus_enzyme(cm) -> str | None:
+    """Digestion enzyme used for the search, or ``None`` when it is not recorded.
+
+    Read from the consensusXML ``<SearchParameters enzyme="...">``. Needed to count
+    missed cleavages, which the OpenMS path otherwise leaves null while the DIA-NN
+    path populates it (bigbio/qpx#300).
+
+    Works for both readers: the streaming map captures the attribute while parsing
+    its header, and a pyopenms ConsensusMap exposes it through the protein
+    identification's search parameters. ``unknown_enzyme`` counts as absent.
+    """
+    enzyme = getattr(cm, "_enzyme", None)
+    if not enzyme:
+        try:
+            prots = cm.getProteinIdentifications()
+            if prots:
+                params = prots[0].getSearchParameters()
+                digestion = getattr(params, "digestion_enzyme", None)
+                if digestion is not None:
+                    enzyme = digestion.getName()
+        except (AttributeError, IndexError, RuntimeError):
+            return None
+    if not enzyme:
+        return None
+    enzyme = str(enzyme).strip()
+    if not enzyme or enzyme.lower() in ("unknown_enzyme", "unknown", "no enzyme"):
+        return None
+    return enzyme
 
 
 def pep_of(hit) -> float | None:
@@ -403,7 +434,7 @@ def feature_map_info(cm) -> dict[int, tuple[str, str]]:
     return {idx: (_run_stem(headers[idx].filename), _map_label(headers[idx].label)) for idx in headers}
 
 
-def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=None) -> list[dict]:
+def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=None, enzyme=None) -> list[dict]:
     """Feature records for one consensus feature (one per run, channels as intensities).
 
     ``pg_accessions`` carries the full protein-group membership; the feature->pg
@@ -448,6 +479,9 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     # not proof of uniqueness, and claiming True there would invent information.
     unique = (len(group) == 1) if group else None
     error_ppm = mass_error_ppm(calculated_mz, observed_mz) if charge > 0 else None
+    # Missed cleavages are a property of the peptide and the search enzyme, both
+    # of which are in hand; the DIA-NN path already reports them (bigbio/qpx#300).
+    missed = count_missed_cleavages(sequence, enzyme) if enzyme else None
 
     records: list[dict] = []
     for run, entry in by_run.items():
@@ -469,6 +503,7 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
                 "calculated_mz": calculated_mz,
                 "observed_mz": observed_mz,
                 "mass_error_ppm": error_ppm,
+                "missed_cleavages": missed,
                 "unique": unique,
                 "consensus_rt": consensus_rt,
                 "anchor_protein": anchor_protein,

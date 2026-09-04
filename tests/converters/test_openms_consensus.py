@@ -1071,3 +1071,57 @@ class TestSkipUnassignedPsms:
             )
             counts.append(pq.read_table(str(out / "X.pg.parquet")).num_rows)
         assert counts[0] == counts[1], "pg output changed when only PSM rows were filtered"
+
+
+class TestMissedCleavages:
+    """OpenMS output must report missed cleavages, as the DIA-NN path does.
+
+    The value is a property of the peptide and the search enzyme, both of which
+    the converter has: the enzyme is in the consensusXML SearchParameters
+    (bigbio/qpx#300).
+    """
+
+    # PEPTIDEK has no internal K/R; PEPKTIDEK has one internal K -> 1 missed cleavage.
+    _TRYPSIN = _TMT_CONSENSUSXML.replace('enzyme="unknown_enzyme"', 'enzyme="Trypsin"')
+    _TRYPSIN_MISSED = _TRYPSIN.replace('sequence="PEPTIDEK"', 'sequence="PEPKTIDEK"')
+
+    @staticmethod
+    def _features(tmp_path, name, xml, stream):
+        import pyarrow.parquet as pq
+
+        from qpx.converters.openms_consensus import converter as conv
+
+        path = tmp_path / f"{name}.consensusXML"
+        path.write_text(xml)
+        out = tmp_path / f"out_{name}"
+        conv._should_stream = lambda _p, v=stream: v
+        OpenMSConsensusConverter().convert(
+            str(path),
+            str(out),
+            output_prefix="X",
+            structures=("feature", "psm", "pg"),
+            project_accession="X",
+        )
+        return (
+            pq.read_table(str(out / "X.feature.parquet")).to_pylist(),
+            pq.read_table(str(out / "X.psm.parquet")).to_pylist(),
+        )
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_zero_missed_cleavages(self, tmp_path, stream):
+        feats, psms = self._features(tmp_path, f"mc0_{stream}", self._TRYPSIN, stream)
+        assert feats and all(f["missed_cleavages"] == 0 for f in feats)
+        assert psms and all(p["missed_cleavages"] == 0 for p in psms)
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_one_missed_cleavage(self, tmp_path, stream):
+        feats, psms = self._features(tmp_path, f"mc1_{stream}", self._TRYPSIN_MISSED, stream)
+        assert feats and all(f["missed_cleavages"] == 1 for f in feats)
+        assert psms and all(p["missed_cleavages"] == 1 for p in psms)
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_unknown_enzyme_leaves_it_null(self, tmp_path, stream):
+        """No usable enzyme means unknown, not a guessed zero."""
+        feats, psms = self._features(tmp_path, f"mcnull_{stream}", _TMT_CONSENSUSXML, stream)
+        assert feats and all(f["missed_cleavages"] is None for f in feats)
+        assert psms and all(p["missed_cleavages"] is None for p in psms)

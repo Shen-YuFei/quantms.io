@@ -30,6 +30,7 @@ from qpx.converters.openms_consensus.feature_adapter import (
 from qpx.converters.openms_consensus.feature_adapter import (
     pep_of as _pep_of,
 )
+from qpx.core.cleavage import count_missed_cleavages
 
 _log = logging.getLogger(__name__)
 
@@ -206,7 +207,7 @@ def consensus_psms_to_records(consensusxml_path: str | None = None, cm=None) -> 
     return records
 
 
-def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None) -> list[dict]:
+def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme=None) -> list[dict]:
     """PSM records for one PeptideIdentification (deduped via the shared ``seen`` set).
 
     ``cf_runs`` is the consensus feature's element-run set (passed for assigned
@@ -303,6 +304,7 @@ def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None) -> lis
                 "calculated_mz": calc_mz,
                 "observed_mz": obs_mz,
                 "mass_error_ppm": _mass_error_ppm(calc_mz, obs_mz),
+                "missed_cleavages": (count_missed_cleavages(seq_obj.toUnmodifiedString(), enzyme) if enzyme else None),
                 "posterior_error_probability": pep,
                 "additional_scores": additional_scores or None,
                 "is_decoy": is_decoy,
