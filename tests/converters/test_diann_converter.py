@@ -767,6 +767,28 @@ def test_diann_default_conversion_applies_no_qvalue_filter(tmp_path):
     assert pg_accessions == {("P1",), ("P2",)}, "no-filter default must keep the high-PG.Q.Value group"
 
 
+def test_diann_feature_without_qvalue_converts_when_unfiltered(tmp_path):
+    """Q.Value is optional when no precursor q-value filter is requested."""
+    rows = [{**row, "Channel": str(index)} for index, row in enumerate(_two_precursor_report_rows())]
+    for row in rows:
+        row.pop("Q.Value")
+
+    feature_rows = _feature_rows_single_run(tmp_path, rows)
+
+    assert len(feature_rows) == 2
+    assert all(all(score["score_name"] != "precursor_qvalue" for score in row["additional_scores"]) for row in feature_rows)
+
+
+def test_diann_feature_threshold_requires_qvalue(tmp_path):
+    """Filtering without DIA-NN Q.Value fails with an explicit error."""
+    rows = _two_precursor_report_rows()
+    for row in rows:
+        row.pop("Q.Value")
+
+    with pytest.raises(ValueError, match=r"Q\.Value"):
+        _feature_rows_single_run(tmp_path, rows, qvalue_threshold=0.01)
+
+
 def test_diann_threshold_filters_each_view_at_its_own_level(tmp_path):
     """A supplied threshold filters the feature view on precursor Q.Value and the
     pg view on PG-level q-value (Global.PG.Q.Value / PG.Q.Value).

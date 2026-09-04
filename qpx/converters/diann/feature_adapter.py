@@ -499,7 +499,9 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
         """
         r = self._resolved
         run_col = r["run_file_name"]
-        qv_col = r["precursor_qvalue"]
+        qv_col = r.get("precursor_qvalue")
+        if qvalue_threshold is not None and qv_col is None:
+            raise ValueError("qvalue_threshold requires the DIA-NN report column Q.Value")
         pg_col = r["pg_accessions"]
 
         has_column = report_cols.__contains__
@@ -573,12 +575,12 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
         return row_sql
 
     @staticmethod
-    def _build_channel_sql_parts(channel_col: str | None, qvalue_col: str) -> tuple[str, list[str], str]:
+    def _build_channel_sql_parts(channel_col: str | None, qvalue_col: str | None) -> tuple[str, list[str], str]:
         """Return the label, helper columns, and join used for channel-aware rows."""
         if channel_col is None:
             return "'LFQ'", [], ""
 
-        qvalue_expr = f"{_safe_double_sql(qvalue_col)} AS _qvalue"
+        qvalue_expr = f"{_safe_double_sql(qvalue_col)} AS _qvalue" if qvalue_col else "NULL::DOUBLE AS _qvalue"
         channel_join = sql_build(
             """
             JOIN diann_channel_labels cl
