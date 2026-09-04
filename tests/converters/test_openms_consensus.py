@@ -1035,10 +1035,32 @@ class TestSkipUnassignedPsms:
         return pq.read_table(str(out / "X.psm.parquet")).to_pylist()
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
-    def test_default_keeps_unassigned(self, tmp_path, stream):
+    def test_default_drops_unassigned(self, tmp_path, stream):
+        """The default PSM view is quantified-only."""
+        import pyarrow.parquet as pq
+
+        from qpx.converters.openms_consensus import converter as conv
+
+        path = tmp_path / f"default_{stream}.consensusXML"
+        path.write_text(self._XML_WITH_UNASSIGNED)
+        out = tmp_path / f"out_default_{stream}"
+        conv._should_stream = lambda _p, v=stream: v
+        OpenMSConsensusConverter().convert(
+            str(path),
+            str(out),
+            output_prefix="X",
+            structures=("feature", "psm", "pg"),
+            project_accession="X",
+        )
+        rows = pq.read_table(str(out / "X.psm.parquet")).to_pylist()
+        assert "UNASSIGNEDK" not in {r["sequence"] for r in rows}
+        assert all(r["feature_id"] is not None for r in rows)
+
+    @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])
+    def test_opt_in_keeps_unassigned(self, tmp_path, stream):
         rows = self._convert(tmp_path, f"keep_{stream}", include=True, stream=stream)
         seqs = {r["sequence"] for r in rows}
-        assert "UNASSIGNEDK" in seqs, "default must preserve existing output"
+        assert "UNASSIGNEDK" in seqs, "opt-in must restore them"
         assert any(r["feature_id"] is None for r in rows)
 
     @pytest.mark.parametrize("stream", [False, True], ids=["memory", "streaming"])

@@ -875,15 +875,15 @@ def convert_openms_cmd(**kwargs):
     help="PRIDE / ProteomeXchange accession (e.g. PXD001819)",
 )
 @click.option(
-    "--skip-unassigned-psms",
+    "--include-unassigned-psms",
     is_flag=True,
     default=False,
     help=(
-        "Omit identifications that are not linked to any consensus feature from "
-        "psm.parquet. They are identified spectra but carry no quantification and "
-        "their feature_id is null, so a psm->feature join drops them anyway (41% of "
-        "rows on a real label-free dataset). Protein inference is unaffected: it "
-        "always uses every identification."
+        "Also write identifications that are not linked to any consensus feature. "
+        "They are identified spectra but carry no quantification and their "
+        "feature_id is null, so a psm->feature join drops them anyway (41% of rows "
+        "on a real label-free dataset); they are omitted by default. Protein "
+        "inference always uses every identification either way."
     ),
 )
 @click.option(
@@ -903,7 +903,7 @@ def convert_openms_consensus_cmd(
     streaming,
     verbose,
     project_accession,
-    skip_unassigned_psms,
+    include_unassigned_psms,
     compression,
 ):
     """Convert an OpenMS consensusXML (+ SDRF) to QPX.
@@ -923,7 +923,7 @@ def convert_openms_consensus_cmd(
         consensusxml_path=str(consensusxml_path),
         output_folder=str(output_folder),
         output_prefix=output_prefix,
-        include_unassigned_psms=not skip_unassigned_psms,
+        include_unassigned_psms=include_unassigned_psms,
         sdrf_path=str(sdrf_path) if sdrf_path else None,
         structures=structs,
         pg_top=pg_top,
