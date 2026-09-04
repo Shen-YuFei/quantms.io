@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence
@@ -192,6 +193,12 @@ class BaseWriter:
         identity_composite: Optional[Sequence[str]] = None,
     ):
         self._path = Path(path)
+        # Bytes go to a sibling temp file and are moved onto _path only after a
+        # clean close. Opening the destination directly meant a converter that
+        # failed mid-run replaced an existing valid file with a truncated one and
+        # there was no way back (bigbio/qpx#288). A sibling keeps the rename on
+        # the same filesystem, so os.replace is atomic.
+        self._staging_path = self._path.with_name(f".{self._path.name}.{os.getpid()}.tmp")
         self._compression = compression
         self._batch_size = batch_size
         self._buffer: list[dict] = []
@@ -470,9 +477,38 @@ class BaseWriter:
         if self._writer:
             self._writer.close()
             self._writer = None
-        if validate and wrote_file:
-            self._validate_identity_uniqueness()
-            self._validate_referential()
+        if not wrote_file:
+            self._discard_staged()
+            return
+        if not validate:
+            # The body raised: leave whatever was already at the destination
+            # untouched and drop the partial file.
+            self._discard_staged()
+            return
+        # Validate the staged file, then publish it atomically. Validation runs
+        # BEFORE the rename so a file that fails its checks never reaches the
+        # destination.
+        self._validate_identity_uniqueness()
+        self._validate_referential()
+        self._promote_staged()
+
+    @property
+    def _validation_path(self) -> Path:
+        """Where the bytes currently live: the staging file until it is promoted."""
+        return self._staging_path if self._staging_path.exists() else self._path
+
+    def _promote_staged(self) -> None:
+        """Atomically move the staged file onto the destination."""
+        if not self._staging_path.exists():
+            return
+        os.replace(self._staging_path, self._path)
+
+    def _discard_staged(self) -> None:
+        """Remove the staged file, leaving any existing destination intact."""
+        try:
+            self._staging_path.unlink(missing_ok=True)
+        except OSError as exc:  # pragma: no cover - best effort cleanup
+            logger.warning("Could not remove staging file %s: %s", self._staging_path, exc)
 
     def _validate_referential(self) -> None:
         """Warn on pg referential / run-disjointness problems over the full file.
@@ -488,7 +524,7 @@ class BaseWriter:
         """
         if getattr(self._schema_class, "view_name", None) != "pg":
             return
-        issues = pg_referential_issues_from_parquet(str(self._path), self._schema_class.view_name, "warning")
+        issues = pg_referential_issues_from_parquet(str(self._validation_path), self._schema_class.view_name, "warning")
         for issue in issues:
             logger.warning("pg referential check '%s': %s", issue.check, issue.message)
 
@@ -510,7 +546,7 @@ class BaseWriter:
         )
         connection = duckdb.connect()
         try:
-            total_count, unique_count, null_count = connection.execute(query, [str(self._path)]).fetchone()
+            total_count, unique_count, null_count = connection.execute(query, [str(self._validation_path)]).fetchone()
         finally:
             connection.close()
 
@@ -545,8 +581,9 @@ class BaseWriter:
 
     def _ensure_writer(self):
         if self._writer is None:
+            self._staging_path.parent.mkdir(parents=True, exist_ok=True)
             self._writer = pq.ParquetWriter(
-                str(self._path),
+                str(self._staging_path),
                 schema=self.arrow_schema,
                 **self._parquet_write_options(),
             )
