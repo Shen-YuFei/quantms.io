@@ -207,6 +207,45 @@ def consensus_psms_to_records(consensusxml_path: str | None = None, cm=None) -> 
     return records
 
 
+def _psm_additional_scores(primary, hits, score, score_type, score_is_qvalue, higher_better):
+    """Assemble one PSM's ``additional_scores`` and its localisation site scores.
+
+    Extracted from :func:`psm_records_for_pid` to keep that function within the
+    project's complexity limits; the behaviour is unchanged.
+
+    Returns ``(additional_scores, site_scores)`` — the latter feeds
+    :func:`to_modifications` so per-site localisation scores land on the
+    modification they belong to.
+    """
+    additional_scores = []
+    if score is not None:
+        # Route the identification score into additional_scores: the psm schema
+        # has no dedicated q-value column.
+        name = "q-value" if score_is_qvalue else (score_type or "search_score")
+        additional_scores.append({"score_name": name, "score_value": score, "higher_better": higher_better})
+    # Preserve the other colliding hits' (i.e. the other engines') search scores
+    # so a comet+msgf merged spectrum does not lose either engine's score.
+    for other in hits:
+        if other is primary:
+            continue
+        other_score = float(other.getScore()) if other.getScore() is not None else None
+        if other_score is not None:
+            base = "q-value" if score_is_qvalue else (score_type or "search_score")
+            _append_unique_score(additional_scores, base, other_score, higher_better)
+    if primary.metaValueExists("consensus_support"):
+        additional_scores.append(
+            {
+                "score_name": "consensus_support",
+                "score_value": float(primary.getMetaValue("consensus_support")),
+                "higher_better": True,
+            }
+        )
+    loc_scores, site_scores = localization_scores(primary)
+    if loc_scores:
+        additional_scores.extend(loc_scores)
+    return additional_scores, site_scores
+
+
 def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme=None) -> list[dict]:
     """PSM records for one PeptideIdentification (deduped via the shared ``seen`` set).
 
@@ -265,32 +304,7 @@ def psm_records_for_pid(pid, resolve_run, seen: set[tuple], cf_runs=None, enzyme
         is_decoy = primary.metaValueExists("target_decoy") and "decoy" in str(primary.getMetaValue("target_decoy")).lower()
         pep = _pep_of(primary)
         score = float(primary.getScore()) if primary.getScore() is not None else None
-        additional_scores = []
-        if score is not None:
-            # Route the identification score into additional_scores: the psm schema
-            # has no dedicated q-value column.
-            name = "q-value" if score_is_qvalue else (score_type or "search_score")
-            additional_scores.append({"score_name": name, "score_value": score, "higher_better": higher_better})
-        # Preserve the other colliding hits' (i.e. the other engines') search scores
-        # so a comet+msgf merged spectrum does not lose either engine's score.
-        for other in hits:
-            if other is primary:
-                continue
-            other_score = float(other.getScore()) if other.getScore() is not None else None
-            if other_score is not None:
-                base = "q-value" if score_is_qvalue else (score_type or "search_score")
-                _append_unique_score(additional_scores, base, other_score, higher_better)
-        if primary.metaValueExists("consensus_support"):
-            additional_scores.append(
-                {
-                    "score_name": "consensus_support",
-                    "score_value": float(primary.getMetaValue("consensus_support")),
-                    "higher_better": True,
-                }
-            )
-        loc_scores, site_scores = localization_scores(primary)
-        if loc_scores:
-            additional_scores.extend(loc_scores)
+        additional_scores, site_scores = _psm_additional_scores(primary, hits, score, score_type, score_is_qvalue, higher_better)
         modifications = to_modifications(seq_obj, site_scores)
         records.append(
             {
