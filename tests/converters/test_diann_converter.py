@@ -238,18 +238,14 @@ class TestDiaNNFeatureConversion:
         errors = FeatureSchema.validate(feature_table)
         assert not errors, f"Schema validation errors: {errors}"
 
-    def test_peptide_qvalue_is_populated(self, feature_table):
-        """Q.Value must reach the output (bigbio/qpx#284).
+    def test_precursor_qvalue_stays_in_additional_scores(self, feature_table):
+        """DIA-NN Q.Value is not mislabeled as a peptide-level q-value."""
+        assert all(value is None for value in feature_table.column("peptide_qvalue").to_pylist())
 
-        --qvalue-threshold filters on this value, so dropping it left the table
-        unverifiable: DIA-NN reports to 5% run-level q-value by default, and
-        without this column a consumer cannot tell a 1% table from a 5% one.
-        """
-        assert "peptide_qvalue" in feature_table.schema.names
-        values = feature_table.column("peptide_qvalue").to_pylist()
-        populated = [v for v in values if v is not None]
-        assert populated, "peptide_qvalue is null for every row"
-        for value in populated:
+        for scores in feature_table.column("additional_scores").to_pylist():
+            by_name = {score["score_name"]: score["score_value"] for score in scores}
+            assert "qvalue" not in by_name
+            value = by_name["precursor_qvalue"]
             assert 0.0 <= value <= 1.0, f"q-value out of range: {value}"
 
 
@@ -271,6 +267,9 @@ def test_plexdia_feature_collapses_channels_into_one_row(tmp_path):
     assert len(rows) == 1
     assert rows[0]["run_file_name"] == "run_A"
     assert {entry["label"]: entry["intensity"] for entry in rows[0]["intensities"]} == {"L": 100.0, "H": 200.0}
+    assert rows[0]["peptide_qvalue"] is None
+    scores = {entry["score_name"]: entry["score_value"] for entry in rows[0]["additional_scores"]}
+    assert scores["precursor_qvalue"] == pytest.approx(0.002)
 
 
 # ---------------------------------------------------------------------------
@@ -968,6 +967,13 @@ class TestDiaNNOntologyConversion:
         expected = {"field_name", "view"}
         missing = expected - column_names
         assert not missing, f"Missing ontology columns: {missing}"
+
+        entries = [row for row in table.to_pylist() if row["field_name"] == "precursor_qvalue" and row["view"] == "feature"]
+        assert len(entries) == 1
+        assert entries[0]["ontology_name"] == "DIA-NN:Q.Value"
+        assert entries[0]["ontology_accession"] is None
+        assert entries[0]["source_column_name"] == "Q.Value"
+        assert entries[0]["source_tool"] == "DIA-NN"
 
     def test_schema_validation(self, converted_output):
         from qpx.core.data import OntologySchema

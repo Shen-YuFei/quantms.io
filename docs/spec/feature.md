@@ -105,7 +105,9 @@ Each entry in `pg_positions` contains:
     `pg_global_qvalue` and `peptide_qvalue` are **optional** — the column may be absent from the file entirely if the search engine does not provide that q-value. When present, individual values may be null.
 
 !!! warning "Which q-value to read"
-    `peptide_qvalue` is the canonical peptide-level q-value and is the field to read when filtering or reporting FDR. A producer may *additionally* place its own q-values in `additional_scores` under tool-specific names (DIA-NN, for example, also emits `qvalue`, `global_qvalue` and `pg_qvalue` there). Those are for provenance and tool-specific analysis; do not rely on searching `additional_scores` for a q-value, because the score name varies by producer.
+    `peptide_qvalue` is the canonical peptide-level q-value and is the field to read when filtering or reporting peptide-level FDR. DIA-NN does not report a peptide-level q-value: its precursor-level `Q.Value` remains in `additional_scores` under `precursor_qvalue`, and the DIA-NN converter leaves `peptide_qvalue` null.
+
+    Other producer-specific q-values may also appear in `additional_scores`; use the documented score name and level rather than treating every q-value as peptide-level confidence.
 
     A value belongs in `peptide_qvalue` **only** when the producer states it is a q-value. Writing a raw search-engine score (a Percolator SVM score, an E-value) into this column makes it indistinguishable from an FDR downstream — leave the field null instead.
 

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Score mappings: (DIA-NN column, output score name, higher_better)
 _SCORE_MAPPINGS = [
-    ("Q.Value", "qvalue", False),
+    ("Q.Value", "precursor_qvalue", False),
     ("PG.Q.Value", "pg_qvalue", False),
     ("Global.Q.Value", "global_qvalue", False),
     ("CScore", "diann_cscore", True),
@@ -111,7 +111,7 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
 
         Filtering is opt-in (bigbio/qpx#241). ``qvalue_threshold`` defaults to
         ``None``, which emits every feature the report contains — DIA-NN already
-        FDR-filters its main report and all per-row q-value columns (``qvalue``,
+        FDR-filters its main report and all per-row q-value columns (``precursor_qvalue``,
         ``global_qvalue``, ``diann_lib_qvalue``, ``diann_translated_qvalue`` …)
         are carried through unconditionally for downstream filtering. When a
         threshold is provided, the precursor ``Q.Value`` filter is applied.
@@ -358,15 +358,9 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
             else "NULL::DOUBLE AS posterior_error_probability"
         )
 
-        # Precursor Q.Value. This is the value --qvalue-threshold filters on, so
-        # dropping it left the output unverifiable: a consumer could not tell a 1%
-        # table from DIA-NN's default 5% report (bigbio/qpx#284).
-        qvalue_col = resolved.get("qvalue")
-        parts.append(
-            f"{_safe_double_sql(qvalue_col)} AS peptide_qvalue"
-            if qvalue_col and has_column(qvalue_col)
-            else "NULL::DOUBLE AS peptide_qvalue"
-        )
+        # DIA-NN Q.Value is precursor-level and remains in additional_scores;
+        # DIA-NN does not report a peptide-level q-value.
+        parts.append("NULL::DOUBLE AS peptide_qvalue")
 
         pg_col = resolved["pg_accessions"]
         if has_decoy_col:
@@ -505,7 +499,7 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
         """
         r = self._resolved
         run_col = r["run_file_name"]
-        qv_col = r["qvalue"]
+        qv_col = r["precursor_qvalue"]
         pg_col = r["pg_accessions"]
 
         has_column = report_cols.__contains__
