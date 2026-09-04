@@ -30,20 +30,20 @@ _QVALUE_SCORE_TYPES = ("q-value", "qvalue", "fdr")
 def mass_error_ppm(calculated_mz, observed_mz) -> float | None:
     """Relative precursor mass error in ppm, or ``None`` when it is not measurable.
 
-    Only meaningful when *observed_mz* is a real measurement. A producer that has
-    no measured m/z and echoes the theoretical value back would yield a constant
-    0.0 ppm, which reads as perfect accuracy rather than as missing data — so an
-    exact match is reported as ``None`` rather than as a measured zero.
+    ``None`` is reserved for values that are absent or not measurable. Both m/z
+    values must be positive: ``feature_records_for_cf`` substitutes 0.0 when the
+    ConsensusFeature carries no m/z, and treating that as a measurement would
+    report roughly -1e6 ppm instead of "not measured".
 
-    Both m/z values must be positive. ``feature_records_for_cf`` substitutes 0.0
-    when the ConsensusFeature carries no m/z, and treating that as a measurement
-    would report roughly -1e6 ppm instead of "not measured".
+    An exact match returns ``0.0``, not ``None``. The OpenMS adapters are this
+    helper's only callers and their ``observed_mz`` is a real measurement, so a
+    zero error is a genuine result and must not be suppressed. (A producer that
+    echoed the theoretical m/z back would report a constant 0.0 ppm — but no such
+    producer reaches this function, and the guard cost real measurements.)
     """
     if calculated_mz is None or observed_mz is None:
         return None
     if calculated_mz <= 0 or observed_mz <= 0:
-        return None
-    if observed_mz == calculated_mz:
         return None
     return float((observed_mz - calculated_mz) / calculated_mz * 1e6)
 
@@ -423,9 +423,10 @@ def feature_records_for_cf(cf, map_info: dict[int, tuple[str, str]], group_map=N
     group = group_map.get(orig) if (group_map and orig is not None) else None
     anchor_protein = group[0] if group else orig
     pg_accessions = [{"accession": a, "start": None, "end": None, "pre": None, "post": None} for a in group] if group else None
-    # A peptide is unique when its group resolves to exactly one protein. The
-    # column was previously left null even though the membership is right here.
-    unique = (len(group) == 1) if group else (True if anchor_protein else None)
+    # A peptide is unique when its resolved group holds exactly one protein.
+    # With no resolved group the answer is unknown: a lone peptide evidence is
+    # not proof of uniqueness, and claiming True there would invent information.
+    unique = (len(group) == 1) if group else None
     error_ppm = mass_error_ppm(calculated_mz, observed_mz)
 
     records: list[dict] = []

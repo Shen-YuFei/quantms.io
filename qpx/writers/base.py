@@ -193,16 +193,24 @@ class BaseWriter:
         identity_composite: Optional[Sequence[str]] = None,
     ):
         self._path = Path(path)
+        # A per-instance nonce, not just the pid: two writers in the SAME process
+        # targeting one destination would otherwise share a staging file and
+        # corrupt each other.
         # Bytes go to a sibling temp file and are moved onto _path only after a
         # clean close. Opening the destination directly meant a converter that
         # failed mid-run replaced an existing valid file with a truncated one and
         # there was no way back (bigbio/qpx#288). A sibling keeps the rename on
         # the same filesystem, so os.replace is atomic.
-        self._staging_path = self._path.with_name(f".{self._path.name}.{os.getpid()}.tmp")
+        self._staging_path = self._path.with_name(f".{self._path.name}.{os.getpid()}.{uuid.uuid4().hex[:8]}.tmp")
         self._compression = compression
         self._batch_size = batch_size
         self._buffer: list[dict] = []
         self._writer: pq.ParquetWriter | None = None
+        # Set when a write raises. __exit__ sees the exception and discards, but a
+        # converter that catches its own write error and then calls close()
+        # normally would otherwise promote the partial file — publishing exactly
+        # the truncated output the staging was added to prevent (bigbio/qpx#288).
+        self._write_failed = False
         self._extra_columns = extra_columns or []
         # Override mode (e.g. consensusXML): re-derive the id even when the
         # producer supplied one, stashing the original as a cv_param so it is
@@ -422,8 +430,19 @@ class BaseWriter:
             base = self._schema_class.get_arrow_schema()
         return base.with_metadata(self._file_metadata)
 
+    def _guard(self, fn, *args, **kwargs):
+        """Run a write, latching failure so close() can never promote the result."""
+        try:
+            return fn(*args, **kwargs)
+        except BaseException:
+            self._write_failed = True
+            raise
+
     def write_batch(self, records: list[dict]):
         """Accumulate records and flush when batch_size is reached."""
+        return self._guard(self._write_batch, records)
+
+    def _write_batch(self, records: list[dict]):
         self._buffer.extend(records)
         while len(self._buffer) >= self._batch_size:
             batch = self._buffer[: self._batch_size]
@@ -437,6 +456,9 @@ class BaseWriter:
         (derived from the identity_composite) before validation, so callers may
         pass tables whose id column is absent or null.
         """
+        return self._guard(self._write_table, table)
+
+    def _write_table(self, table: pa.Table):
         table = self._fill_identity_table(table)
         errors = self._schema_class.validate(table, strict=False)
         if errors:
@@ -465,8 +487,11 @@ class BaseWriter:
         self.write_table(table)
 
     def close(self):
-        """Flush buffered rows, close the file, and validate its identity PK."""
-        self._close(validate=True)
+        """Flush buffered rows, close the file, and validate its identity PK.
+
+        A write that already failed is never promoted, however close() is reached.
+        """
+        self._close(validate=not self._write_failed)
 
     def _close(self, *, validate: bool) -> None:
         """Close the writer, discarding buffered rows after a body error."""
