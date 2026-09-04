@@ -238,6 +238,30 @@ class TestDiaNNFeatureConversion:
         errors = FeatureSchema.validate(feature_table)
         assert not errors, f"Schema validation errors: {errors}"
 
+    def test_mass_error_ppm_is_null_without_a_measured_mz(self, feature_table):
+        """Null only when there is nothing to measure (bigbio/qpx#298).
+
+        DIA-NN emits no mass-error column, so the value must be derived from the
+        two m/z. This fixture carries no Precursor.Mz, so observed_mz is null and
+        the ppm must be null too - never a fabricated 0.0.
+        """
+        assert "mass_error_ppm" in feature_table.schema.names
+        observed = feature_table.column("observed_mz").to_pylist()
+        errors = feature_table.column("mass_error_ppm").to_pylist()
+        for obs, err in zip(observed, errors):
+            if obs is None:
+                assert err is None, "mass error reported without a measured m/z"
+
+    def test_mass_error_ppm_matches_the_spec_formula(self, feature_table):
+        """Whenever both m/z are positive the value is 1e6*(obs-calc)/calc."""
+        calc = feature_table.column("calculated_mz").to_pylist()
+        obs = feature_table.column("observed_mz").to_pylist()
+        err = feature_table.column("mass_error_ppm").to_pylist()
+        for c, o, e in zip(calc, obs, err):
+            if c and o and c > 0 and o > 0:
+                assert e is not None, "both m/z present but no mass error emitted"
+                assert abs(e - (o - c) / c * 1e6) < 0.5, f"{e} does not match the spec formula"
+
     def test_precursor_qvalue_stays_in_additional_scores(self, feature_table):
         """DIA-NN Q.Value is not mislabeled as a peptide-level q-value."""
         assert all(value is None for value in feature_table.column("peptide_qvalue").to_pylist())

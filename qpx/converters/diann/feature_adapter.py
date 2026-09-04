@@ -385,12 +385,27 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
             else "NULL::FLOAT AS observed_mz"
         )
 
+        # mass_error_ppm: prefer a reported column, otherwise DERIVE it. DIA-NN
+        # emits no mass-error column, so this was always null even though both
+        # inputs are present — on PXD030304 22% of rows carry an observed m/z that
+        # genuinely differs from the theoretical one, and that error was discarded
+        # (bigbio/qpx#298). Guarded on both values being positive: calculated_mz is
+        # COALESCEd to 0.0 above, and observed_mz is null when the report has no
+        # Precursor.Mz, so an unmeasured row stays null rather than dividing by zero
+        # or reporting a fabricated error. The formula matches docs/spec/feature.md.
         mass_error_col = resolved.get("mass_error_ppm")
-        parts.append(
-            f"{_safe_float_sql(mass_error_col)} AS mass_error_ppm"
-            if mass_error_col and has_column(mass_error_col)
-            else "NULL::FLOAT AS mass_error_ppm"
-        )
+        if mass_error_col and has_column(mass_error_col):
+            parts.append(f"{_safe_float_sql(mass_error_col)} AS mass_error_ppm")
+        elif observed_mz_col and has_column(observed_mz_col):
+            observed_expr = _safe_float_sql(observed_mz_col)
+            parts.append(
+                "CASE WHEN lk.calculated_mz > 0 AND "
+                f"({observed_expr}) > 0 "
+                f"THEN CAST((({observed_expr}) - lk.calculated_mz) / lk.calculated_mz * 1e6 AS FLOAT) "
+                "END AS mass_error_ppm"
+            )
+        else:
+            parts.append("NULL::FLOAT AS mass_error_ppm")
 
         predicted_rt_col = resolved.get("predicted_rt")
         parts.append(
@@ -837,6 +852,19 @@ class DiannFeatureAdapter(DiaNNBaseAdapter):
             merged_parts.append(group_df)
 
         merged_df = pd.concat(merged_parts, ignore_index=True)
+
+        # Recompute the mass error for rows whose observed_mz was only just
+        # backfilled from the mzML. The SQL derives it before this merge runs, so
+        # without this those rows keep a null error while carrying both m/z
+        # (bigbio/qpx#298). Only null errors are filled; a reported value wins.
+        if {"calculated_mz", "observed_mz", "mass_error_ppm"} <= set(merged_df.columns):
+            calc = pd.to_numeric(merged_df["calculated_mz"], errors="coerce")
+            obs = pd.to_numeric(merged_df["observed_mz"], errors="coerce")
+            derivable = merged_df["mass_error_ppm"].isna() & (calc > 0) & (obs > 0)
+            if derivable.any():
+                merged_df.loc[derivable, "mass_error_ppm"] = ((obs[derivable] - calc[derivable]) / calc[derivable] * 1e6).astype(
+                    "float32"
+                )
         # Rebuild Arrow table preserving the original schema for non-scan columns
         return pa.Table.from_pandas(merged_df, schema=table.schema, preserve_index=False)
 
