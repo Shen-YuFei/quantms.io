@@ -1170,20 +1170,21 @@ class Dataset:
             warnings.append("file_checksums is null")
             return {"errors": errors, "warnings": warnings}
 
-        # Skip dataset.parquet itself — writing integrity changes its own checksum
-        dataset_suffix = self._STRUCTURE_REGISTRY["dataset"][1]
-        path = Path(self.path)
+        # Skip only the metadata file carrying this integrity record: nested
+        # *.dataset.parquet files are ordinary recorded inputs and must verify.
+        path = Path(self.path).resolve()
+        dataset_meta_path = Path(self.dataset_meta.file_paths[0]).resolve()
         for name, expected_sha in stored_checksums.items():
-            if name.endswith(dataset_suffix):
-                continue
             # Keys are dataset-root-relative POSIX paths. Resolve and confirm the
             # result stays inside the dataset before reading it, so a crafted or
             # corrupted key cannot walk outside the directory being verified.
             fpath = (path / name).resolve()
             try:
-                fpath.relative_to(path.resolve())
+                fpath.relative_to(path)
             except ValueError:
                 errors.append(f"Integrity entry escapes the dataset directory: {name}")
+                continue
+            if fpath == dataset_meta_path:
                 continue
             if not fpath.exists():
                 errors.append(f"Missing file: {name}")

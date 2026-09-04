@@ -163,3 +163,26 @@ class TestPartitionedIntegrity:
             assert not key.startswith("/"), f"absolute path leaked into the record: {key}"
             assert "\\" not in key, f"non-POSIX separator in the record: {key}"
             assert (out / key).exists(), f"key does not resolve under the dataset root: {key}"
+
+    def test_verify_checks_nested_dataset_parquet(self, dataset_dir, tmp_path):
+        """Only the root metadata file is exempt from its own checksum."""
+        import qpx
+
+        out, _ = self._partition(dataset_dir, tmp_path)
+        nested = out / "metadata" / "part-0.dataset.parquet"
+        nested.parent.mkdir()
+        nested.write_bytes(next(out.glob("*.dataset.parquet")).read_bytes())
+
+        ds = qpx.open_dataset(str(out))
+        integrity = ds.compute_integrity()
+        meta_dict = ds.dataset_meta.to_df().iloc[0].to_dict()
+        meta_dict.update(integrity)
+        ds.save_structure([meta_dict], "dataset", prefix="exp")
+        ds.refresh()
+
+        nested.write_bytes(b"corrupted")
+        result = ds.verify_integrity()
+        ds.close()
+
+        key = nested.relative_to(out).as_posix()
+        assert f"Checksum mismatch: {key}" in result["errors"]
