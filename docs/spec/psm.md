@@ -111,6 +111,42 @@ Several fields in the PSM view use structures shared across other QPX views:
 - For details on `additional_scores` and score semantics, see [Scores](scores.md).
 - For details on `cv_params` usage and recommended terms, see [Scores & CV Terms](scores.md).
 
+!!! note "A null `feature_id` means not quantified"
+    `feature_id` links a PSM to the quantified feature it belongs to. When it is
+    null, the PSM **was identified but not quantified** — no feature was detected
+    or mapped for it. In OpenMS terms this is an *unassigned*
+    PeptideIdentification: the spectrum was identified, but no MS1 feature was
+    found at that retention time and m/z.
+
+    This is a statement about quantification, not about identification quality.
+    Such rows carry a sequence, a score and a spectrum reference like any other
+    PSM, and their median posterior error probability is typically *better* than
+    that of quantified PSMs.
+
+    Most are redundant rather than lost. A producer links one identification to a
+    feature, so when the same precursor is fragmented repeatedly across its
+    elution peak only one PSM attaches to the feature and the rest do not — on a
+    representative label-free dataset 97% of unquantified rows have a quantified
+    counterpart for the same run, sequence and charge. The remainder are
+    identifications whose MS1 signal was too weak or too poorly resolved for a
+    feature to be extracted, which is why they skew towards low-abundance
+    modified peptides and lower charge states. They are written by default so the
+    minority that appear nowhere else are not silently discarded.
+
+    Read the split through the API rather than reimplementing the predicate:
+
+    ```python
+    psm.quantified()      # feature_id IS NOT NULL — safe to join to feature
+    psm.unquantified()    # feature_id IS NULL     — identified, not quantified
+    ```
+
+    **A `psm` -> `feature` join is therefore expected to be partial.** Join from
+    `psm.quantified()`, or convert with `--no-include-unassigned-psms` for a
+    quantified-only PSM view.
+
+    The converse does not occur: a feature is never emitted without an
+    identification, so there are no unidentified rows in the feature view.
+
 ## Example
 
 ### Basic PSM Record
