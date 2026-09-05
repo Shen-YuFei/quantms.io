@@ -24,27 +24,14 @@ class PSM(BaseStructure):
         """Filter to target PSMs only (exclude decoys)."""
         return self.filter("is_decoy = false")
 
-    def quantified(self) -> "PSM":
-        """Filter to PSMs that are linked to a quantified feature.
-
-        ``feature_id`` is null when the identification maps to no feature — in
-        OpenMS terms an *unassigned* PeptideIdentification, where the spectrum was
-        identified but no MS1 feature was detected or mapped at that RT and m/z.
-        Those rows are about **quantification**, not identification quality: they
-        carry a sequence, a score and a spectrum reference like any other PSM.
-
-        Use this before joining ``psm`` to ``feature``, which is otherwise a
-        partial join — on a representative label-free dataset 41% of PSM rows have
-        no feature (bigbio/qpx#299).
-        """
+    def with_feature(self) -> "PSM":
+        """Filter to PSMs with a populated ``feature_id``."""
         return self.filter("feature_id IS NOT NULL")
 
-    def unquantified(self) -> "PSM":
-        """Filter to identified PSMs that have no quantified feature.
+    def without_feature(self) -> "PSM":
+        """Filter to PSMs without a populated ``feature_id``.
 
-        The complement of :meth:`quantified`. These are identifications without
-        quantification, not failed identifications — their median posterior error
-        probability is typically better than that of quantified PSMs, and some of
-        their peptidoforms appear nowhere else in the file.
+        A missing link does not establish whether the precursor was quantified.
+        OpenMS PSM-only exports also leave assigned PSMs' feature links null.
         """
         return self.filter("feature_id IS NULL")

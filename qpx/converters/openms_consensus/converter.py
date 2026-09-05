@@ -389,22 +389,18 @@ class OpenMSConsensusConverter(BaseOrchestrator):  # pylint: disable=too-few-pub
         """Write the requested QPX views and return ``{structure: parquet path}``.
 
         ``include_unassigned_psms`` (default ``True``) controls whether
-        identifications that are not linked to any consensus feature reach
-        ``psm.parquet``.
+        unassigned PeptideIdentifications from the source reach ``psm.parquet``.
+        They are retained to preserve identification evidence; pass ``False``
+        to exclude them.
 
-        They are kept by default because they are real identifications: on a real
-        label-free dataset they are 41% of PSM rows, their median PEP is *better*
-        than the assigned ones, and 15% of their peptidoforms appear nowhere else
-        in the file. Dropping them would silently cost identification evidence.
-        A null ``feature_id`` is what marks them, and it means the PSM is **not
-        quantified** — not that it is unidentified. :meth:`PSM.quantified` and
-        :meth:`PSM.unquantified` expose that split directly.
+        ``feature_id`` records a link in the exported dataset, not quantification
+        status. It is only populated when both feature and PSM views are emitted;
+        PSM-only output leaves it null even for assigned identifications.
+        ``PSM.with_feature()`` and ``PSM.without_feature()`` filter these links.
 
-        Pass ``False`` for a quantified-only PSM view, where every row joins to a
-        feature. Note that features themselves are always identified — a
-        consensus feature with no peptide hit is never emitted — so this option
-        has no bearing on the feature view. Protein inference is unaffected
-        either way: it always sees every identification.
+        The feature view always omits consensus features without peptide hits.
+        Protein inference always uses every identification, regardless of this
+        option.
 
         ``structures`` selects which of feature/psm/pg/run/sample to emit. pg
         carries an interim unnormalized unique-peptide-sum intensity; ``pg_top``

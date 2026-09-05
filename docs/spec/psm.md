@@ -111,41 +111,30 @@ Several fields in the PSM view use structures shared across other QPX views:
 - For details on `additional_scores` and score semantics, see [Scores](scores.md).
 - For details on `cv_params` usage and recommended terms, see [Scores & CV Terms](scores.md).
 
-!!! note "A null `feature_id` means not quantified"
-    `feature_id` links a PSM to the quantified feature it belongs to. When it is
-    null, the PSM **was identified but not quantified** — no feature was detected
-    or mapped for it. In OpenMS terms this is an *unassigned*
-    PeptideIdentification: the spectrum was identified, but no MS1 feature was
-    found at that retention time and m/z.
+!!! note "A null `feature_id` means no linked feature"
+    `feature_id` records a PSM's feature link in the exported dataset. A null
+    value means no link is recorded; it does not establish identification
+    quality or whether the precursor was quantified.
 
-    This is a statement about quantification, not about identification quality.
-    Such rows carry a sequence, a score and a spectrum reference like any other
-    PSM, and their median posterior error probability is typically *better* than
-    that of quantified PSMs.
+    OpenMS unassigned PeptideIdentifications are retained by default to preserve
+    identification evidence. Some repeat evidence for a precursor linked through
+    another spectrum, while others have no detected or mapped feature. Also,
+    when only the PSM view is exported, **all `feature_id` values are null**, even
+    for identifications assigned to a consensus feature in the source.
 
-    Most are redundant rather than lost. A producer links one identification to a
-    feature, so when the same precursor is fragmented repeatedly across its
-    elution peak only one PSM attaches to the feature and the rest do not — on a
-    representative label-free dataset 97% of unquantified rows have a quantified
-    counterpart for the same run, sequence and charge. The remainder are
-    identifications whose MS1 signal was too weak or too poorly resolved for a
-    feature to be extracted, which is why they skew towards low-abundance
-    modified peptides and lower charge states. They are written by default so the
-    minority that appear nowhere else are not silently discarded.
-
-    Read the split through the API rather than reimplementing the predicate:
+    The API filters the recorded links:
 
     ```python
-    psm.quantified()      # feature_id IS NOT NULL — safe to join to feature
-    psm.unquantified()    # feature_id IS NULL     — identified, not quantified
+    psm.with_feature()     # feature_id IS NOT NULL
+    psm.without_feature()  # feature_id IS NULL
     ```
 
-    **A `psm` -> `feature` join is therefore expected to be partial.** Join from
-    `psm.quantified()`, or convert with `--no-include-unassigned-psms` for a
-    quantified-only PSM view.
+    **A `psm` -> `feature` join is expected to be partial.** When both views are
+    present, join from `psm.with_feature()` on `feature_id`. The conversion option
+    `--no-include-unassigned-psms` excludes source unassigned identifications;
+    it does not populate feature links when the feature view is not exported.
 
-    The converse does not occur: a feature is never emitted without an
-    identification, so there are no unidentified rows in the feature view.
+    The OpenMS consensus converter omits features without peptide hits.
 
 ## Example
 

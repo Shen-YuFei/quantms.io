@@ -1,4 +1,4 @@
-"""PSM.quantified() / PSM.unquantified() — the supported split on feature_id."""
+"""PSM.with_feature() / PSM.without_feature() filter recorded feature links."""
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -9,7 +9,7 @@ from qpx.core.data import PSM
 
 @pytest.fixture(name="psm_file")
 def _psm_file(tmp_path):
-    """A tiny psm.parquet with two quantified rows and one unquantified."""
+    """A tiny psm.parquet with two linked rows and one unlinked row."""
     from tests.conftest import make_psm_record
 
     records = []
@@ -19,23 +19,24 @@ def _psm_file(tmp_path):
         record["sequence"] = f"PEPTIDE{i}"
         record["feature_id"] = feature_id
         records.append(record)
-    schema = PSM._schema_class.get_arrow_schema()
+    schema = PSM.schema()
     table = pa.Table.from_pylist([{k: r.get(k) for k in schema.names} for r in records], schema=schema)
     path = tmp_path / "x.psm.parquet"
     pq.write_table(table, path)
     return path
 
 
-def test_quantified_keeps_only_linked_rows(psm_file):
-    psm = PSM.from_file(psm_file)
+def test_with_feature_keeps_only_linked_rows(psm_file):
+    """Filtering feature links leaves the original PSM view intact."""
+    psm = PSM.from_file(psm_file, threads=24)
+    assert psm.with_feature().count() == 2
+    assert psm.with_feature().to_df()["feature_id"].notna().all()
     assert psm.count() == 3
-    assert psm.quantified().count() == 2
-    assert psm.quantified().to_df()["feature_id"].notna().all()
 
 
-def test_unquantified_is_the_complement(psm_file):
-    psm = PSM.from_file(psm_file)
-    assert psm.unquantified().count() == 1
-    # pandas renders a null int64 as NaN, not None.
-    assert psm.unquantified().to_df()["feature_id"].isna().all()
-    assert psm.quantified().count() + psm.unquantified().count() == psm.count()
+def test_without_feature_is_the_complement(psm_file):
+    """Linked and unlinked filters partition all PSM rows."""
+    psm = PSM.from_file(psm_file, threads=24)
+    assert psm.without_feature().count() == 1
+    assert psm.without_feature().to_df()["feature_id"].isna().all()
+    assert psm.with_feature().count() + psm.without_feature().count() == psm.count()
